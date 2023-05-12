@@ -1,0 +1,12 @@
+﻿using EnCS;
+using System;
+using System.Runtime.InteropServices;
+
+namespace $namespace
+{
+	[StructLayout(LayoutKind.Explicit)]
+	public sealed class $name
+	{
+		public int var = | 2 |;
+	}
+}

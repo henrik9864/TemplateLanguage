@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.31911.260
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tokhenizer", "Tokhenizer\Tokhenizer.csproj", "{FB69FA25-D501-4A5C-B03D-978C3A673016}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Runner", "Runner\Runner.csproj", "{5A219932-133D-42B7-88CF-6E2341B2A688}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TemplateLanguage", "TemplateLanguage\TemplateLanguage.csproj", "{8C7180D8-CE19-4985-A7FF-AEF8285699B8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tokhenizer.Test", "Tokhenizer.Test\Tokhenizer.Test.csproj", "{AAEE7480-5009-449E-8B32-BF1E52FC9256}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FB69FA25-D501-4A5C-B03D-978C3A673016}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB69FA25-D501-4A5C-B03D-978C3A673016}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB69FA25-D501-4A5C-B03D-978C3A673016}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB69FA25-D501-4A5C-B03D-978C3A673016}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A219932-133D-42B7-88CF-6E2341B2A688}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A219932-133D-42B7-88CF-6E2341B2A688}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A219932-133D-42B7-88CF-6E2341B2A688}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A219932-133D-42B7-88CF-6E2341B2A688}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C7180D8-CE19-4985-A7FF-AEF8285699B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C7180D8-CE19-4985-A7FF-AEF8285699B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C7180D8-CE19-4985-A7FF-AEF8285699B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C7180D8-CE19-4985-A7FF-AEF8285699B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAEE7480-5009-449E-8B32-BF1E52FC9256}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAEE7480-5009-449E-8B32-BF1E52FC9256}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAEE7480-5009-449E-8B32-BF1E52FC9256}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAEE7480-5009-449E-8B32-BF1E52FC9256}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {85B89327-06BD-4FB0-9E0F-29294B355C05}
+	EndGlobalSection
+EndGlobal
