@@ -14,7 +14,7 @@ namespace Tokhenizer
 
         public TokenEnumerable GetEnumerable(ReadOnlySpan<char> text)
         {
-            return new TokenEnumerable(text, BracketRule, NumberRule, OperatorRule, SnippetRule, WhitespaceRule, StringRule, LooseStringRule);
+            return new TokenEnumerable(text, BracketRule, NumberRule, OperatorRule, SnippetRule, WhitespaceRule, StringRule);
         }
 
         bool BracketRule(ref Lexer lexer, out Token token)
@@ -120,14 +120,6 @@ namespace Tokhenizer
                 lexer.Consume();
 
             return lexer.TryCreateToken(out token, TokenType.String);
-        }
-
-        bool LooseStringRule(ref Lexer lexer, out Token token)
-        {
-            while (!lexer.IsEnd() && !char.IsWhiteSpace(lexer.Current) && !char.IsLetterOrDigit(lexer.Current) && !OperatorRule(ref lexer, out _) && !BracketRule(ref lexer, out _))
-                lexer.Consume();
-
-            return lexer.TryCreateToken(out token, TokenType.LooseString);
         }
     }
 }

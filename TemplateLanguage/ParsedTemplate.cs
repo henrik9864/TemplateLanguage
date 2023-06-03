@@ -16,7 +16,8 @@ namespace TemplateLanguage
 		static Dictionary<EngineState, IState> stateDict = new()
         {
 			{ EngineState.String,   new StringState() },
-			{ EngineState.Code,     new CodeState() }
+			{ EngineState.Term,     new TermState() },
+			{ EngineState.Factor,   new FactorState() }
 		};
 
 		ReadOnlySpan<char> txt;
@@ -28,19 +29,22 @@ namespace TemplateLanguage
 		public void RenderTo(StringBuilder sb, IModel model)
         {
             var nodeArr = ArrayPool<Node>.Shared.Rent(4096);
-            var ast = new AbstractSyntaxTree(nodeArr);
 
 			TokenEnumerable.Enumerator enumerator = tokens.GetEnumerator();
             state = new State()
             {
                 token = ref enumerator.Current,
-                ast = ast
+                ast = new AbstractSyntaxTree(nodeArr)
 			};
 
-            while (enumerator.MoveNext())
+			state.ast.InsertStart();
+
+			while (enumerator.MoveNext())
                 stateDict[engineState].OnStep(ref this, ref state);
 
-			state.ast.PrintTree(txt);
+            state.ast.InsertEnd();
+
+			state.ast.PrintTree(txt, true);
 
 			var language = new TemplateLanguage()
 			{
@@ -90,8 +94,6 @@ namespace TemplateLanguage
                 
                 Console.Write(sb);
                 sb.Clear();
-
-                //PrintToken(token, str.Span);
             }
             Console.BackgroundColor = ConsoleColor.Black;
             Console.ForegroundColor = ConsoleColor.White;
@@ -137,7 +139,6 @@ namespace TemplateLanguage
             PrintColor(ConsoleColor.Magenta, "Number");
             PrintColor(ConsoleColor.Black, "WhiteSpace");
             PrintColor(ConsoleColor.Blue, "String");
-            PrintColor(ConsoleColor.DarkBlue, "LooseString");
             Console.WriteLine("-------------");
             Console.WriteLine();
         }

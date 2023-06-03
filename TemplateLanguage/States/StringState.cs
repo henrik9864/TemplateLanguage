@@ -8,6 +8,8 @@ namespace TemplateLanguage
 	{
 		public void OnEnter(ref ParsedTemplate sm, ref ParsedTemplate.State state)
 		{
+			ref AbstractSyntaxTree ast = ref state.ast;
+			ast.BracketClose();
 		}
 
 		public void OnExit(ref ParsedTemplate sm, ref ParsedTemplate.State state)
@@ -16,6 +18,7 @@ namespace TemplateLanguage
 
 		public void OnStep(ref ParsedTemplate sm, ref ParsedTemplate.State state)
 		{
+			ref AbstractSyntaxTree ast = ref state.ast;
 			ref readonly Token token = ref state.token;
 
 			if (token.Get<TokenType>(0) == TokenType.Operator && token.Get<OperatorType>(1) == OperatorType.Variable)
@@ -25,11 +28,12 @@ namespace TemplateLanguage
 			}
 			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
 			{
-				sm.Transition(EngineState.Code);
+				ast.StartCodeBlock();
+				sm.Transition(EngineState.Term);
 			}
 			else
 			{
-				state.ast.InsertAbove(token);
+				ast.InsertString(token);
 			}
 		}
 	}

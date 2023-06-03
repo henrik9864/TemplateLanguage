@@ -37,6 +37,18 @@ namespace TemplateLanguage
 			return ref buff.Memory.Span[currIdx + offset - 1];
 		}
 
+		public bool TryPeek(int offset, out T val)
+		{
+			if (currIdx + offset - 1 < buff.Memory.Length)
+			{
+				val = default;
+				return false;
+			}
+
+			val = Peek(offset);
+			return true;
+		}
+
 		public void Dispose()
 		{
 			buff.Dispose();
@@ -45,113 +57,93 @@ namespace TemplateLanguage
 
 	ref struct AbstractSyntaxTree
 	{
-		struct NodeState
-		{
-			public int idx;
-			public bool isFactor;
-		}
-
 		Span<Node> nodeTree;
-		RefStack<NodeState> root;
+		RefStack<int> root;
 
 		int currIdx = 0;
 
 		public AbstractSyntaxTree(Span<Node> nodeTree)
 		{
             this.nodeTree = nodeTree;
-			root = new RefStack<NodeState>(64);
-			root.Push(new NodeState() { idx = 0, isFactor = false });
+			root = new RefStack<int>(64);
+			root.Push(0);
+		}
 
-			// Put everything inside a bracket som no operators is exposed to the cold dead void outside those brackets
-			int rootIdx = root.Peek().idx;
-			Node.CreateBracket(ref nodeTree[currIdx], -1, rootIdx);
+		public void InsertNumber(in Token token, NodeType type)
+		{
+			int rootIdx = root.Peek();
+			if (rootIdx == currIdx)
+				throw new Exception("Number cannot be a root.");
+
+			Node.CreateNumber(ref nodeTree[currIdx], token, type, -1);
+
 			currIdx++;
 		}
 
-		public void InsertAbove(in Token token)
+		public void InsertString(in Token token)
 		{
-			int rootIdx = root.Peek().idx;
+			int rootIdx = root.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
-			Node.CreateString(ref nodeTree[currIdx], token, rootIdx, -1);
-			rootNode.parent = currIdx;
+			if (rootNode.right == currIdx)
+				rootNode.right = -1;
 
-			SetRoot(currIdx, root.Peek().isFactor);
-			currIdx++;
-		}
-
-		public void InsertRight(in Token token, NodeType type)
-		{
-			int rootIdx = root.Peek().idx;
-			Node.CreateNumber(ref nodeTree[currIdx], token, type, rootIdx);
-
-			// First node will have root be itself
-			if (rootIdx != currIdx)
-				nodeTree[rootIdx].right = currIdx;
+			Node.CreateString(ref nodeTree[currIdx], token, rootNode.right, -1, -1);
+			rootNode.right = currIdx;
 
 			currIdx++;
 		}
 
-		public void InsertOperator(in Token token, NodeType type)
+		public void StartCodeBlock()
 		{
-			int rootIdx = root.Peek().idx;
+			int rootIdx = root.Peek();
+			ref Node rootNode = ref nodeTree[rootIdx];
+			ref Node parentNode = ref nodeTree[rootNode.right];
+			parentNode.left = currIdx;
+			BracketOpen();
+		}
+
+		public void InsertOperator(NodeType type)
+		{
+			int rootIdx = root.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
-			Node.CreateOperator(ref nodeTree[currIdx], type, rootIdx, -1, -1);
-			rootNode.parent = currIdx;
+			Node.CreateOperator(ref nodeTree[currIdx], type, currIdx + 1, rootNode.right, -1);
+			rootNode.right = currIdx;
 
-			SetRoot(currIdx, root.Peek().isFactor);
 			currIdx++;
 		}
 
-		public void BracketOpen(bool isFactor)
+		public void BracketOpen()
 		{
-			int rootIdx = root.Peek().idx;
-			Node.CreateBracket(ref nodeTree[currIdx], -1, rootIdx);
+			Node.CreateBracket(ref nodeTree[currIdx], currIdx + 1, -1);
 
-			nodeTree[rootIdx].right = currIdx;
-
-			root.Push(new NodeState { idx = currIdx, isFactor = isFactor });
+			root.Push(currIdx);
 			currIdx++;
-			root.Push(new NodeState { idx = currIdx, isFactor = isFactor });
+		}
+
+		public void BracketOpenBetween()
+		{
+			nodeTree[currIdx] = nodeTree[currIdx - 1];
+			Node.CreateBracket(ref nodeTree[currIdx - 1], currIdx, -1);
+
+			root.Push(currIdx - 1);
+			currIdx++;
+		}
+
+		public void InsertStart()
+		{
+			Node.CreateStart(ref nodeTree[currIdx], ++currIdx);
+		}
+		
+		public void InsertEnd()
+		{
+			Node.CreateEnd(ref nodeTree[currIdx++]);
 		}
 
 		public void BracketClose()
 		{
-			int prevRoot = root.Pop().idx;
-			int bracketRoot = root.Pop().idx;
-			int rootIdx = root.Peek().idx;
-
-			ref Node rootNode = ref nodeTree[rootIdx];
-			rootNode.right = bracketRoot;
-
-			ref Node bracketNode = ref nodeTree[bracketRoot];
-			bracketNode.right = prevRoot;
-		}
-
-		public void StartFactor()
-		{
-			int prevRootIdx = root.Peek().idx;
-			ref Node prevRootNode = ref nodeTree[prevRootIdx];
-			int afterNewRoot = prevRootNode.right; // BracketOpen will change prevRootNode right int
-
-			BracketOpen(true);
-			SetRoot(afterNewRoot, true);
-
-			ref Node newRootNode = ref nodeTree[prevRootNode.right];
-			newRootNode.parent = -1;
-		}
-
-		public void StopFactor()
-		{
-			if (root.Peek().isFactor)
-				BracketClose();
-		}
-
-		public void StopAllFactors()
-		{
-			while (root.Peek().isFactor)
-				BracketClose();
+			root.Pop();
 		}
 
 		public Span<Node> GetTree()
@@ -166,26 +158,26 @@ namespace TemplateLanguage
 
 		public int GetRoot()
 		{
-			return root.Peek().idx;
+			return root.Peek();
 		}
 
-		void SetRoot(int root, bool isFactor)
+		void SetRoot(int root)
 		{
 			this.root.Pop();
-			this.root.Push(new NodeState { idx = root, isFactor = isFactor });
+			this.root.Push(root);
 		}
 	}
 
 	internal static class AbstractSyntaxTreeExtensions
 	{
-		public static void PrintTree(this AbstractSyntaxTree ast, in ReadOnlySpan<char> txt)
+		public static void PrintTree(this ref AbstractSyntaxTree ast, in ReadOnlySpan<char> txt, bool simplified)
 		{
 			List<int> visited = new List<int>();
             Console.WriteLine($"Stack Depth: {ast.GetStackDepth()}");
-            PrintTree(txt, ast.GetTree(), ast.GetRoot(), 0, visited);
+            PrintTree(txt, ast.GetTree(), ast.GetRoot(), 0, visited, simplified);
 		}
 
-		static void PrintTree(in ReadOnlySpan<char> txt, in ReadOnlySpan<Node> nodeTree, int node, int indent, List<int> visited)
+		static void PrintTree(in ReadOnlySpan<char> txt, in ReadOnlySpan<Node> nodeTree, int node, int indent, List<int> visited, bool simplified)
 		{
 			if (node == -1)
 				return;
@@ -194,13 +186,11 @@ namespace TemplateLanguage
 			string nodeInfo;
 
 			// Simplify printout
-			/*
-			if (nodeRef.nodeType == NodeType.Bracket)
+			if (simplified && nodeRef.nodeType == NodeType.Bracket)
 			{
-				PrintTree(txt, nodeTree, nodeTree[node].right, indent, visited);
+				PrintTree(txt, nodeTree, nodeTree[node].right, indent, visited, simplified);
 				return;
 			}
-			*/
 
 			if (nodeRef.nodeType == NodeType.Integer)
 			{
@@ -223,8 +213,8 @@ namespace TemplateLanguage
 
 			visited.Add(node);
 
-			PrintTree(txt, nodeTree, nodeTree[node].right, indent + 1, visited);
-			PrintTree(txt, nodeTree, nodeTree[node].left, indent + 1, visited);
+			PrintTree(txt, nodeTree, nodeTree[node].right, indent + 1, visited, simplified);
+			PrintTree(txt, nodeTree, nodeTree[node].left, indent + 1, visited, simplified);
 		}
 	}
 }

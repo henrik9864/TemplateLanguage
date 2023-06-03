@@ -10,7 +10,10 @@ namespace TemplateLanguage
 
 		public void Compute(int root, StringBuilder sb)
 		{
-			ref readonly Node rootNode = ref nodes[root];
+			if (root == -1)
+				return;
+
+            ref readonly Node rootNode = ref nodes[root];
 
 			switch (rootNode.nodeType)
 			{
@@ -30,8 +33,14 @@ namespace TemplateLanguage
 					Compute(rootNode.right, sb);
 					break;
 				case NodeType.String:
-                    sb.Append(rootNode.token.GetSpan(txt));
 					Compute(rootNode.right, sb);
+                    sb.Append(rootNode.token.GetSpan(txt));
+					Compute(rootNode.left, sb);
+					break;
+				case NodeType.Start:
+					Compute(rootNode.right, sb);
+					break;
+				case NodeType.End:
 					break;
 				default:
 					throw new Exception("WTF!");

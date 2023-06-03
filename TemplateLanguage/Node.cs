@@ -9,6 +9,8 @@ namespace TemplateLanguage
 {
 	enum NodeType
 	{
+		Start,
+		End,
 		String,
 
 		Integer,
@@ -44,8 +46,19 @@ namespace TemplateLanguage
 		{
 			node = new()
 			{
-				nodeType = NodeType.String,
+				nodeType = NodeType.Start,
 				right = right,
+				left = -1,
+				parent = -1
+			};
+		}
+
+		public static void CreateEnd(ref Node node)
+		{
+			node = new()
+			{
+				nodeType = NodeType.End,
+				right = -1,
 				left = -1,
 				parent = -1
 			};
@@ -63,7 +76,7 @@ namespace TemplateLanguage
 			};
 		}
 
-		public static void CreateOperator(ref Node node, NodeType type, int left, int right, int parent)
+		public static void CreateOperator(ref Node node, NodeType type, int right, int left, int parent)
 		{
 			node = new()
 			{
@@ -85,13 +98,13 @@ namespace TemplateLanguage
 			};
 		}
 
-		public static void CreateString(ref Node node, Token token, int right, int parent)
+		public static void CreateString(ref Node node, Token token, int right, int left, int parent)
 		{
 			node = new()
 			{
 				nodeType = NodeType.String,
 				token = token,
-				left = -1,
+				left = left,
 				right = right,
 				parent = parent
 			};
