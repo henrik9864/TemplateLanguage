@@ -4,23 +4,30 @@ using Tokhenizer;
 
 namespace TemplateLanguage
 {
+
 	internal class TermState : IState
 	{
-		public void OnEnter(ref ParsedTemplate sm, ref ParsedTemplate.State state)
+		public void OnEnterAbove(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState prevState)
 		{
-			ref readonly Token token = ref state.token;
 			ref AbstractSyntaxTree ast = ref state.ast;
 			ast.BracketOpen();
 
-			// TODO: Not the best but find a way to prefor step when tranitioning from term but not from string.
-			if (token.Get<TokenType>(0) != TokenType.Bracket || token.Get<BracketType>(1) != BracketType.Code)
-				OnStep(ref sm, ref state);
+			OnStep(ref sm, ref state);
 		}
 
-		public void OnExit(ref ParsedTemplate sm, ref ParsedTemplate.State state)
+		public void OnEnterBelow(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState prevState)
 		{
-			ref AbstractSyntaxTree ast = ref state.ast;
+			OnStep(ref sm, ref state);
+		}
+
+		public void OnExitAbove(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState newState)
+		{
+            ref AbstractSyntaxTree ast = ref state.ast;
 			ast.BracketClose();
+		}
+
+		public void OnExitBelow(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState newState)
+		{
 		}
 
 		public void OnStep(ref ParsedTemplate sm, ref ParsedTemplate.State state)
@@ -30,8 +37,8 @@ namespace TemplateLanguage
 
 			if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
 			{
-				//ast.StopAllFactors();
-				sm.Transition(EngineState.String);
+				sm.PopState();
+				//sm.Transition(EngineState.Code);
 			}
 			else if (token.Get<TokenType>(0) == TokenType.Number)
 			{

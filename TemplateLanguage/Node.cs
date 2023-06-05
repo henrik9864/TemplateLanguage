@@ -11,7 +11,9 @@ namespace TemplateLanguage
 	{
 		Start,
 		End,
+
 		String,
+		Bracket,
 
 		Integer,
 		Float,
@@ -21,7 +23,8 @@ namespace TemplateLanguage
 		Multiply,
 		Divide,
 
-		Bracket,
+		Variable,
+		Name,
 	}
 
 	struct Node
@@ -107,6 +110,28 @@ namespace TemplateLanguage
 				left = left,
 				right = right,
 				parent = parent
+			};
+		}
+
+		public static void CreateVariable(ref Node node, int right)
+		{
+			node = new()
+			{
+				nodeType = NodeType.Variable,
+				left = -1,
+				right = right,
+				parent = -1
+			};
+		}
+
+		public static void CreateName(ref Node node)
+		{
+			node = new()
+			{
+				nodeType = NodeType.Variable,
+				left = -1,
+				right = -1,
+				parent = -1
 			};
 		}
 	}

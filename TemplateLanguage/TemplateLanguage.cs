@@ -37,6 +37,9 @@ namespace TemplateLanguage
                     sb.Append(rootNode.token.GetSpan(txt));
 					Compute(rootNode.left, sb);
 					break;
+				case NodeType.Variable:
+					sb.Append('$');
+					break;
 				case NodeType.Start:
 					Compute(rootNode.right, sb);
 					break;

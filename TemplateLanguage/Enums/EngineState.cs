@@ -2,6 +2,7 @@
 {
     internal enum EngineState
     {
+        Code,
         String,
         Term,
         Factor

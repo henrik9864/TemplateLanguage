@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Text;
 using Tokhenizer;
 
 namespace TemplateLanguage
@@ -80,6 +81,8 @@ namespace TemplateLanguage
 			currIdx++;
 		}
 
+		// --------- STRING ---------
+
 		public void InsertString(in Token token)
 		{
 			int rootIdx = root.Peek();
@@ -100,8 +103,23 @@ namespace TemplateLanguage
 			ref Node rootNode = ref nodeTree[rootIdx];
 			ref Node parentNode = ref nodeTree[rootNode.right];
 			parentNode.left = currIdx;
-			BracketOpen();
+
+			root.Push(currIdx);
 		}
+
+		// --------- CODE ---------
+
+		public void InsertVariable()
+		{
+			Node.CreateVariable(ref nodeTree[currIdx++], -1);
+		}
+
+		public void InsertName()
+		{
+			Node.CreateName(ref nodeTree[currIdx++]);
+		}
+
+		// --------- TERM & FACTOR ---------
 
 		public void InsertOperator(NodeType type)
 		{
@@ -131,6 +149,16 @@ namespace TemplateLanguage
 			currIdx++;
 		}
 
+		public void BracketClose()
+		{
+			if (root.Count == 1)
+				throw new Exception("Root stack must never be empty.");
+
+			root.Pop();
+		}
+
+		// ------------------
+
 		public void InsertStart()
 		{
 			Node.CreateStart(ref nodeTree[currIdx], ++currIdx);
@@ -139,11 +167,6 @@ namespace TemplateLanguage
 		public void InsertEnd()
 		{
 			Node.CreateEnd(ref nodeTree[currIdx++]);
-		}
-
-		public void BracketClose()
-		{
-			root.Pop();
 		}
 
 		public Span<Node> GetTree()
@@ -160,21 +183,51 @@ namespace TemplateLanguage
 		{
 			return root.Peek();
 		}
-
-		void SetRoot(int root)
-		{
-			this.root.Pop();
-			this.root.Push(root);
-		}
 	}
 
 	internal static class AbstractSyntaxTreeExtensions
 	{
 		public static void PrintTree(this ref AbstractSyntaxTree ast, in ReadOnlySpan<char> txt, bool simplified)
 		{
-			List<int> visited = new List<int>();
-            Console.WriteLine($"Stack Depth: {ast.GetStackDepth()}");
-            PrintTree(txt, ast.GetTree(), ast.GetRoot(), 0, visited, simplified);
+			var tree = ast.GetTree();
+
+			Console.WriteLine($"Stack Depth: {ast.GetStackDepth()}");
+            Console.WriteLine();
+
+			Console.Write('|');
+			for (int i = 0; i < tree.Length; i++)
+			{
+				SetColor(tree[i]);
+				Console.Write($" {GetChar(tree[i])} ");
+			}
+			Console.BackgroundColor = ConsoleColor.Black;
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.Write('|');
+            Console.WriteLine();
+            Console.Write('|');
+			for (int i = 0; i < tree.Length; i++)
+			{
+				if (i % 2 == 0)
+				{
+					Console.BackgroundColor = ConsoleColor.Black;
+					Console.ForegroundColor = ConsoleColor.White;
+				}
+				else
+				{
+					Console.BackgroundColor = ConsoleColor.White;
+					Console.ForegroundColor = ConsoleColor.Black;
+				}
+				Console.Write($"{i}".PadRight(3));
+			}
+			Console.BackgroundColor = ConsoleColor.Black;
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.Write('|');
+            
+			Console.WriteLine();
+            Console.WriteLine();
+
+            List<int> visited = new List<int>();
+            PrintTree(txt, tree, ast.GetRoot(), 0, visited, simplified);
 		}
 
 		static void PrintTree(in ReadOnlySpan<char> txt, in ReadOnlySpan<Node> nodeTree, int node, int indent, List<int> visited, bool simplified)
@@ -194,15 +247,15 @@ namespace TemplateLanguage
 
 			if (nodeRef.nodeType == NodeType.Integer)
 			{
-				nodeInfo = $"{nodeRef.nodeType} - V: {nodeRef.token.GetSpan(txt)} L: {nodeRef.left} R: {nodeRef.right}";
+				nodeInfo = $"{nodeRef.nodeType} - I: {node} V: {nodeRef.token.GetSpan(txt)} L: {nodeRef.left} R: {nodeRef.right}";
 			}
 			else if (nodeRef.nodeType == NodeType.String)
 			{
-				nodeInfo = $"{nodeRef.nodeType} - C: {nodeRef.token.GetSpan(txt).Length} L: {nodeRef.left} R: {nodeRef.right}";
+				nodeInfo = $"{nodeRef.nodeType} - I: {node} C: {nodeRef.token.GetSpan(txt).Length} L: {nodeRef.left} R: {nodeRef.right}";
 			}
 			else
 			{
-				nodeInfo = $"{nodeRef.nodeType} - L: {nodeRef.left} R: {nodeRef.right}";
+				nodeInfo = $"{nodeRef.nodeType} - I: {node} L: {nodeRef.left} R: {nodeRef.right}";
 			}
 
 			var line = $"{new string('│', int.Max(indent - 1, 0))}{(indent == 0 ? "" : "├")}{nodeInfo}";
@@ -215,6 +268,84 @@ namespace TemplateLanguage
 
 			PrintTree(txt, nodeTree, nodeTree[node].right, indent + 1, visited, simplified);
 			PrintTree(txt, nodeTree, nodeTree[node].left, indent + 1, visited, simplified);
+		}
+
+		static void SetColor(in Node node)
+		{
+			Console.BackgroundColor = ConsoleColor.Black;
+			Console.ForegroundColor = ConsoleColor.White;
+
+			switch (node.nodeType)
+			{
+				case NodeType.Start:
+					Console.BackgroundColor = ConsoleColor.Green;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
+				case NodeType.End:
+					Console.BackgroundColor = ConsoleColor.DarkGreen;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
+				case NodeType.String:
+					Console.BackgroundColor = ConsoleColor.Blue;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
+				case NodeType.Integer:
+					Console.BackgroundColor = ConsoleColor.Magenta;
+					break;
+				case NodeType.Float:
+					Console.BackgroundColor = ConsoleColor.Magenta;
+					break;
+				case NodeType.Add:
+					Console.BackgroundColor = ConsoleColor.Yellow;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
+				case NodeType.Subtract:
+					Console.BackgroundColor = ConsoleColor.Yellow;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
+				case NodeType.Multiply:
+					Console.BackgroundColor = ConsoleColor.Yellow;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
+				case NodeType.Divide:
+					Console.BackgroundColor = ConsoleColor.Yellow;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
+				case NodeType.Bracket:
+					Console.BackgroundColor = ConsoleColor.Red;
+					break;
+				default:
+					break;
+			}
+		}
+
+		static char GetChar(in Node node)
+		{
+			switch (node.nodeType)
+			{
+				case NodeType.Start:
+					return 'B';
+				case NodeType.End:
+					return 'E';
+				case NodeType.String:
+					return 'S';
+				case NodeType.Integer:
+					return 'I';
+				case NodeType.Float:
+					return 'F';
+				case NodeType.Add:
+					return 'A';
+				case NodeType.Subtract:
+					return 'S';
+				case NodeType.Multiply:
+					return 'M';
+				case NodeType.Divide:
+					return 'D';
+				case NodeType.Bracket:
+					return 'B';
+				default:
+					return ' ';
+			}
 		}
 	}
 }

@@ -17,18 +17,22 @@ namespace TemplateLanguage
         {
 			{ EngineState.String,   new StringState() },
 			{ EngineState.Term,     new TermState() },
-			{ EngineState.Factor,   new FactorState() }
+			{ EngineState.Factor,   new FactorState() },
+			{ EngineState.Code,     new CodeState() },
 		};
 
 		ReadOnlySpan<char> txt;
         TokenEnumerable tokens;
 
-        EngineState engineState;
+        RefStack<EngineState> engineStates;
+        //EngineState engineState;
         State state;
 
 		public void RenderTo(StringBuilder sb, IModel model)
         {
             var nodeArr = ArrayPool<Node>.Shared.Rent(4096);
+            engineStates = new RefStack<EngineState>(16);
+            engineStates.Push(EngineState.String);
 
 			TokenEnumerable.Enumerator enumerator = tokens.GetEnumerator();
             state = new State()
@@ -39,12 +43,14 @@ namespace TemplateLanguage
 
 			state.ast.InsertStart();
 
+            stateDict[engineStates.Peek()].OnEnterAbove(ref this, ref state, engineStates.Peek());
 			while (enumerator.MoveNext())
-                stateDict[engineState].OnStep(ref this, ref state);
+                stateDict[engineStates.Peek()].OnStep(ref this, ref state);
+			stateDict[engineStates.Peek()].OnExitAbove(ref this, ref state, engineStates.Peek());
 
-            state.ast.InsertEnd();
+			state.ast.InsertEnd();
 
-			state.ast.PrintTree(txt, true);
+			state.ast.PrintTree(txt, false);
 
 			var language = new TemplateLanguage()
 			{
@@ -58,9 +64,24 @@ namespace TemplateLanguage
 
 		internal void Transition(EngineState newState)
 		{
-            stateDict[engineState].OnExit(ref this, ref state);
+            /*
+            EngineState prevState = engineState;
+            stateDict[engineState].OnExit(ref this, ref state, newState);
             engineState = newState;
-            stateDict[engineState].OnEnter(ref this, ref state);
+            stateDict[engineState].OnEnter(ref this, ref state, prevState);
+            */
+
+			stateDict[engineStates.Peek()].OnExitBelow(ref this, ref state, newState);
+            engineStates.Push(newState);
+			stateDict[newState].OnEnterAbove(ref this, ref state, engineStates.Peek(1));
+		}
+
+        internal void PopState()
+        {
+			EngineState prevState = engineStates.Pop();
+
+			stateDict[prevState].OnExitAbove(ref this, ref state, engineStates.Peek());
+			stateDict[engineStates.Peek()].OnEnterBelow(ref this, ref state, prevState);
 		}
 
         public static ParsedTemplate Tokenize(in ReadOnlySpan<char> str)

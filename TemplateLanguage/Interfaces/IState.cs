@@ -9,9 +9,13 @@ namespace TemplateLanguage
 {
 	internal interface IState
 	{
-		void OnEnter(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state);
+		void OnEnterAbove(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state, EngineState prevState);
 
-		void OnExit(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state);
+		void OnEnterBelow(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state, EngineState prevState);
+
+		void OnExitAbove(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state, EngineState newState);
+
+		void OnExitBelow(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state, EngineState newState);
 
 		void OnStep(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state);
 	}

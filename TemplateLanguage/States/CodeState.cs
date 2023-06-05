@@ -1,10 +1,8 @@
-﻿using System.Text;
-using Tokhenizer;
-using static System.Net.Mime.MediaTypeNames;
+﻿using Tokhenizer;
 
 namespace TemplateLanguage
 {
-	internal class StringState : IState
+	internal class CodeState : IState
 	{
 		public void OnEnterAbove(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState prevState)
 		{
@@ -12,10 +10,7 @@ namespace TemplateLanguage
 
 		public void OnEnterBelow(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState prevState)
 		{
-			ref AbstractSyntaxTree ast = ref state.ast;
-
-			if (prevState == EngineState.Code)
-				ast.BracketClose();
+			OnStep(ref sm, ref state);
 		}
 
 		public void OnExitAbove(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState newState)
@@ -31,14 +26,19 @@ namespace TemplateLanguage
 			ref AbstractSyntaxTree ast = ref state.ast;
 			ref readonly Token token = ref state.token;
 
-			if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
+			if (token.Get<TokenType>(0) == TokenType.Number)
 			{
-				ast.StartCodeBlock();
-				sm.Transition(EngineState.Code);
+				//ast.StartCodeBlock();
+				sm.Transition(EngineState.Term);
 			}
-			else
+			else if (token.Get<TokenType>(0) == TokenType.Operator && token.Get<OperatorType>(1) == OperatorType.Variable)
 			{
-				ast.InsertString(token);
+                Console.WriteLine("Yay");
+                ast.InsertVariable();
+			}
+			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
+			{
+				sm.PopState();
 			}
 		}
 	}
