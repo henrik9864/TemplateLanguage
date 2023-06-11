@@ -4,31 +4,34 @@ namespace TemplateLanguage
 {
 	internal class CodeState : IState
 	{
-		public void OnEnterAbove(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState prevState)
+		/*
+		public void OnEnterAbove(ref ParsedTemplate sm, ref TemplateState state, EngineState prevState)
 		{
 		}
 
-		public void OnEnterBelow(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState prevState)
+		public void OnEnterBelow(ref ParsedTemplate sm, ref TemplateState state, EngineState prevState)
 		{
 			OnStep(ref sm, ref state);
 		}
 
-		public void OnExitAbove(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState newState)
+		public void OnExitAbove(ref ParsedTemplate sm, ref TemplateState state, EngineState newState)
 		{
 		}
 
-		public void OnExitBelow(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState newState)
+		public void OnExitBelow(ref ParsedTemplate sm, ref TemplateState state, EngineState newState)
 		{
 		}
+		*/
 
-		public void OnStep(ref ParsedTemplate sm, ref ParsedTemplate.State state)
+		public ExitCode OnStep(ref ParsedTemplate sm, ref AbstractSyntaxTree ast, ref Token token)
 		{
-			ref AbstractSyntaxTree ast = ref state.ast;
-			ref readonly Token token = ref state.token;
-
 			if (token.Get<TokenType>(0) == TokenType.Number)
 			{
-				sm.Transition(EngineState.Term);
+				ast.BracketOpen();
+				sm.Transition(EngineState.Term, ref ast, repeatToken: true);
+				ast.BracketClose();
+
+                return OnStep(ref sm, ref ast, ref token);
 			}
 			else if (token.Get<TokenType>(0) == TokenType.Operator)
 			{
@@ -51,7 +54,7 @@ namespace TemplateLanguage
 			}
 			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
 			{
-				sm.PopState();
+				return sm.PopState(false);
 			}
 			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Open)
 			{
@@ -61,29 +64,8 @@ namespace TemplateLanguage
 			{
 				ast.BracketClose();
 			}
-		}
-	}
 
-	internal class IfState : IState
-	{
-		public void OnEnterAbove(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state, EngineState prevState)
-		{
-		}
-
-		public void OnEnterBelow(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state, EngineState prevState)
-		{
-		}
-
-		public void OnExitAbove(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state, EngineState newState)
-		{
-		}
-
-		public void OnExitBelow(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state, EngineState newState)
-		{
-		}
-
-		public void OnStep(ref ParsedTemplate parsedTemplate, ref ParsedTemplate.State state)
-		{
+			return sm.Continue();
 		}
 	}
 }

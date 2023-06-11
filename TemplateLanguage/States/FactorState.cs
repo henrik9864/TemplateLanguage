@@ -4,7 +4,8 @@ namespace TemplateLanguage
 {
 	internal class FactorState : IState
 	{
-		public void OnEnterAbove(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState prevState)
+		/*
+		public void OnEnterAbove(ref ParsedTemplate sm, ref TemplateState state, EngineState prevState)
 		{
 			ref AbstractSyntaxTree ast = ref state.ast;
 			ast.BracketOpenBetween();
@@ -12,29 +13,27 @@ namespace TemplateLanguage
 			OnStep(ref sm, ref state);
 		}
 
-		public void OnEnterBelow(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState prevState)
+		public void OnEnterBelow(ref ParsedTemplate sm, ref TemplateState state, EngineState prevState)
 		{
 			OnStep(ref sm, ref state);
 		}
 
-		public void OnExitAbove(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState prevState)
+		public void OnExitAbove(ref ParsedTemplate sm, ref TemplateState state, EngineState prevState)
 		{
 			ref AbstractSyntaxTree ast = ref state.ast;
 			ast.BracketClose();
 		}
 
-		public void OnExitBelow(ref ParsedTemplate sm, ref ParsedTemplate.State state, EngineState newState)
+		public void OnExitBelow(ref ParsedTemplate sm, ref TemplateState state, EngineState newState)
 		{
 		}
+		*/
 
-		public void OnStep(ref ParsedTemplate sm, ref ParsedTemplate.State state)
+		public ExitCode OnStep(ref ParsedTemplate sm, ref AbstractSyntaxTree ast, ref Token token)
 		{
-			ref readonly Token token = ref state.token;
-			ref AbstractSyntaxTree ast = ref state.ast;
-
 			if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
 			{
-				sm.PopState();
+                return sm.PopState(true);
 			}
 			else if (token.Get<TokenType>(0) == TokenType.Number)
 			{
@@ -59,8 +58,10 @@ namespace TemplateLanguage
 			{
 				ref OperatorType type = ref token.Get<OperatorType>(1);
 				if (type == OperatorType.Add || type == OperatorType.Subtract)
-					sm.PopState();
+					return sm.PopState(true);
 			}
+
+			return sm.Continue();
 		}
 	}
 }

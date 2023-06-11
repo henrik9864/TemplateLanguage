@@ -9,7 +9,9 @@ model.Add("testVar", "25");
 var str = File.ReadAllText("simpler.tcs").AsMemory();
 TemplateDebugger.Parse(str);
 
-var template = ParsedTemplate.Tokenize(str.Span);
+//var template = ParsedTemplate.Tokenize(str.Span);
+TemplateRules templateRules = new TemplateRules();
+var template = new ParsedTemplate(str.Span, templateRules.GetEnumerable(str.Span));
 
 Console.WriteLine();
 Console.WriteLine();

@@ -1,20 +1,28 @@
 ﻿using System.Buffers;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Tokhenizer;
 
 namespace TemplateLanguage
 {
+    enum ExitCode
+    {
+        Continue,
+        Exit,
+        ExitAndRepeat,
+    }
+
+	internal ref struct TemplateState
+	{
+		public ref Token token;
+		public AbstractSyntaxTree ast;
+	}
+
 	public ref struct ParsedTemplate
     {
-		internal ref struct State
-		{
-            public ref Token token;
-			public AbstractSyntaxTree ast;
-		}
-
 		static Dictionary<EngineState, IState> stateDict = new()
-        {
+		{
 			{ EngineState.String,   new StringState() },
 			{ EngineState.Term,     new TermState() },
 			{ EngineState.Factor,   new FactorState() },
@@ -22,78 +30,80 @@ namespace TemplateLanguage
 		};
 
 		ReadOnlySpan<char> txt;
-        TokenEnumerable tokens;
+        TokenEnumerable.Enumerator enumerator;
 
-        RefStack<EngineState> engineStates;
-        State state;
+		public ParsedTemplate(ReadOnlySpan<char> txt, TokenEnumerable tokens)
+		{
+			this.txt = txt;
+			this.enumerator = tokens.GetEnumerator();
+		}
 
 		public void RenderTo(StringBuilder sb, IModel model)
         {
-            var nodeArr = ArrayPool<Node>.Shared.Rent(4096);
-            engineStates = new RefStack<EngineState>(16);
-            engineStates.Push(EngineState.String);
+			var nodeArr = ArrayPool<Node>.Shared.Rent(4096);
+            var ast = new AbstractSyntaxTree(nodeArr);
 
-			TokenEnumerable.Enumerator enumerator = tokens.GetEnumerator();
-            state = new State()
+			ast.InsertStart();
+            CalculateAst(EngineState.String, ref ast);
+			ast.InsertEnd();
+
+			ComputeAst(sb, ref ast, model);
+
+			ArrayPool<Node>.Shared.Return(nodeArr);
+		}
+
+		ExitCode CalculateAst(EngineState engineState, ref AbstractSyntaxTree ast)
+        {
+			ref Token token = ref enumerator.Current;
+            while (true)
             {
-                token = ref enumerator.Current,
-                ast = new AbstractSyntaxTree(nodeArr)
-			};
+                if (!enumerator.MoveNext())
+                    return ExitCode.Exit;
 
-			state.ast.InsertStart();
+                var code = stateDict[engineState].OnStep(ref this, ref ast, ref token);
+				if (code != ExitCode.Continue)
+					return ExitCode.Continue;
+			}
+		}
 
-            stateDict[engineStates.Peek()].OnEnterAbove(ref this, ref state, engineStates.Peek());
-			while (enumerator.MoveNext())
-                stateDict[engineStates.Peek()].OnStep(ref this, ref state);
-			stateDict[engineStates.Peek()].OnExitAbove(ref this, ref state, engineStates.Peek());
-
-			state.ast.InsertEnd();
-
-			state.ast.PrintTree(txt, false);
-
+		void ComputeAst(StringBuilder sb, ref AbstractSyntaxTree ast, IModel model)
+        {
 			var language = new TemplateLanguage()
 			{
 				txt = txt,
-				nodes = state.ast.GetTree()
+				nodes = ast.GetTree()
 			};
 
-			language.Compute(state.ast.GetRoot(), sb, model);
-			ArrayPool<Node>.Shared.Return(nodeArr);
-        }
-
-		internal void Transition(EngineState newState)
-		{
-            /*
-            EngineState prevState = engineState;
-            stateDict[engineState].OnExit(ref this, ref state, newState);
-            engineState = newState;
-            stateDict[engineState].OnEnter(ref this, ref state, prevState);
-            */
-
-			stateDict[engineStates.Peek()].OnExitBelow(ref this, ref state, newState);
-            engineStates.Push(newState);
-			stateDict[newState].OnEnterAbove(ref this, ref state, engineStates.Peek(1));
+			ast.PrintTree(txt, false);
+			language.Compute(ast.GetRoot(), sb, model);
 		}
 
-        internal void PopState()
+        internal ExitCode Transition(EngineState newState, ref AbstractSyntaxTree ast, bool repeatToken = false)
         {
-			EngineState prevState = engineStates.Pop();
-
-			stateDict[prevState].OnExitAbove(ref this, ref state, engineStates.Peek());
-			stateDict[engineStates.Peek()].OnEnterBelow(ref this, ref state, prevState);
-		}
-
-        public static ParsedTemplate Tokenize(in ReadOnlySpan<char> str)
-        {
-            TemplateRules tokenizer = new TemplateRules();
-
-            return new ParsedTemplate()
+            if (repeatToken)
             {
-                txt = str,
-                tokens = tokenizer.GetEnumerable(str)
-            };
+				ref Token token = ref enumerator.Current;
+                var code = stateDict[newState].OnStep(ref this, ref ast, ref token);
+
+				if (code != ExitCode.Continue)
+					return ExitCode.Continue;
+			}
+
+            return CalculateAst(newState, ref ast);
+		}
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ExitCode PopState(bool repeatToken)
+        {
+			return repeatToken ? ExitCode.ExitAndRepeat : ExitCode.Exit;
         }
-    }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal ExitCode Continue()
+		{
+            return ExitCode.Continue;
+		}
+	}
 
     public class TemplateDebugger
     {
