@@ -14,7 +14,7 @@ namespace TemplateLanguage
 		{
 			ref AbstractSyntaxTree ast = ref state.ast;
 
-			if (prevState == EngineState.Code)
+            if (prevState == EngineState.Code)
 				ast.BracketClose();
 		}
 

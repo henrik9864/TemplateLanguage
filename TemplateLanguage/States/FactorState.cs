@@ -34,7 +34,7 @@ namespace TemplateLanguage
 
 			if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
 			{
-				sm.Transition(EngineState.Term);
+				sm.PopState();
 			}
 			else if (token.Get<TokenType>(0) == TokenType.Number)
 			{

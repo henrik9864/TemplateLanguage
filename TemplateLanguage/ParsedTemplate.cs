@@ -25,7 +25,6 @@ namespace TemplateLanguage
         TokenEnumerable tokens;
 
         RefStack<EngineState> engineStates;
-        //EngineState engineState;
         State state;
 
 		public void RenderTo(StringBuilder sb, IModel model)
@@ -58,7 +57,7 @@ namespace TemplateLanguage
 				nodes = state.ast.GetTree()
 			};
 
-			language.Compute(state.ast.GetRoot(), sb);
+			language.Compute(state.ast.GetRoot(), sb, model);
 			ArrayPool<Node>.Shared.Return(nodeArr);
         }
 
@@ -160,6 +159,7 @@ namespace TemplateLanguage
             PrintColor(ConsoleColor.Magenta, "Number");
             PrintColor(ConsoleColor.Black, "WhiteSpace");
             PrintColor(ConsoleColor.Blue, "String");
+            PrintColor(ConsoleColor.Cyan, "Bool");
             Console.WriteLine("-------------");
             Console.WriteLine();
         }
@@ -204,6 +204,10 @@ namespace TemplateLanguage
                 case TokenType.LooseString:
                     Console.BackgroundColor = ConsoleColor.DarkBlue;
                     break;
+                case TokenType.Bool:
+                    Console.BackgroundColor = ConsoleColor.Cyan;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
                 default:
                     break;
             }

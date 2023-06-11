@@ -8,7 +8,7 @@ namespace TemplateLanguage
 		public ReadOnlySpan<char> txt;
 		public ReadOnlySpan<Node> nodes;
 
-		public void Compute(int root, StringBuilder sb)
+		public void Compute(int root, StringBuilder sb, IModel model)
 		{
 			if (root == -1)
 				return;
@@ -30,18 +30,21 @@ namespace TemplateLanguage
 					sb.Append(ComputeNumber(root));
 					break;
 				case NodeType.Bracket:
-					Compute(rootNode.right, sb);
+					Compute(rootNode.right, sb, model);
 					break;
 				case NodeType.String:
-					Compute(rootNode.right, sb);
+					Compute(rootNode.right, sb, model);
                     sb.Append(rootNode.token.GetSpan(txt));
-					Compute(rootNode.left, sb);
+					Compute(rootNode.left, sb, model);
 					break;
 				case NodeType.Variable:
-					sb.Append('$');
+					ref readonly Node rightNode = ref nodes[rootNode.right];
+                    sb.Append(model[rightNode.token.GetSpan(txt)]);
+					break;
+				case NodeType.If:
 					break;
 				case NodeType.Start:
-					Compute(rootNode.right, sb);
+					Compute(rootNode.right, sb, model);
 					break;
 				case NodeType.End:
 					break;
@@ -83,6 +86,19 @@ namespace TemplateLanguage
 			}
 		}
 
+		bool ComputeBool(int root)
+		{
+			ref readonly Node rootNode = ref nodes[root];
+
+			switch (rootNode.nodeType)
+			{
+				case NodeType.Variable:
+					return GetBool(rootNode.token.GetSpan(txt));
+				default:
+					throw new Exception("WTF!");
+			}
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float GetInt(ReadOnlySpan<char> txt)
 		{
@@ -93,6 +109,12 @@ namespace TemplateLanguage
 		static float GetFloat(ReadOnlySpan<char> txt)
 		{
 			return float.Parse(txt, System.Globalization.CultureInfo.InvariantCulture);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static bool GetBool(ReadOnlySpan<char> txt)
+		{
+			return bool.Parse(txt);
 		}
 	}
 }

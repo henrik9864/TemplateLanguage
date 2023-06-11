@@ -76,7 +76,7 @@ namespace TemplateLanguage
 			if (rootIdx == currIdx)
 				throw new Exception("Number cannot be a root.");
 
-			Node.CreateNumber(ref nodeTree[currIdx], token, type, -1);
+			Node.CreateNumber(ref nodeTree[currIdx], token, type);
 
 			currIdx++;
 		}
@@ -91,7 +91,7 @@ namespace TemplateLanguage
 			if (rootNode.right == currIdx)
 				rootNode.right = -1;
 
-			Node.CreateString(ref nodeTree[currIdx], token, rootNode.right, -1, -1);
+			Node.CreateString(ref nodeTree[currIdx], token, rootNode.right, -1);
 			rootNode.right = currIdx;
 
 			currIdx++;
@@ -111,12 +111,28 @@ namespace TemplateLanguage
 
 		public void InsertVariable()
 		{
-			Node.CreateVariable(ref nodeTree[currIdx++], -1);
+			Node.CreateVariable(ref nodeTree[currIdx], ++currIdx);
 		}
 
-		public void InsertName()
+		public void InsertName(in Token token)
 		{
-			Node.CreateName(ref nodeTree[currIdx++]);
+			Node.CreateName(ref nodeTree[currIdx++], token);
+		}
+
+		public void InsertIf()
+		{
+			Node.CreateIf(ref nodeTree[currIdx], ++currIdx);
+		}
+
+		public void InsertComparer()
+		{
+			int rootIdx = root.Peek();
+			ref Node rootNode = ref nodeTree[rootIdx];
+
+			Node.CreateComparer(ref nodeTree[currIdx], currIdx + 1, rootNode.right);
+			rootNode.right = currIdx;
+
+			currIdx++;
 		}
 
 		// --------- TERM & FACTOR ---------
@@ -126,7 +142,7 @@ namespace TemplateLanguage
 			int rootIdx = root.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
-			Node.CreateOperator(ref nodeTree[currIdx], type, currIdx + 1, rootNode.right, -1);
+			Node.CreateOperator(ref nodeTree[currIdx], type, currIdx + 1, rootNode.right);
 			rootNode.right = currIdx;
 
 			currIdx++;
@@ -289,6 +305,10 @@ namespace TemplateLanguage
 					Console.BackgroundColor = ConsoleColor.Blue;
 					Console.ForegroundColor = ConsoleColor.Black;
 					break;
+				case NodeType.Name:
+					Console.BackgroundColor = ConsoleColor.DarkBlue;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
 				case NodeType.Integer:
 					Console.BackgroundColor = ConsoleColor.Magenta;
 					break;
@@ -314,6 +334,10 @@ namespace TemplateLanguage
 				case NodeType.Bracket:
 					Console.BackgroundColor = ConsoleColor.Red;
 					break;
+				case NodeType.Variable:
+					Console.BackgroundColor = ConsoleColor.Yellow;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
 				default:
 					break;
 			}
@@ -329,6 +353,8 @@ namespace TemplateLanguage
 					return 'E';
 				case NodeType.String:
 					return 'S';
+				case NodeType.Name:
+					return 'N';
 				case NodeType.Integer:
 					return 'I';
 				case NodeType.Float:
@@ -343,6 +369,8 @@ namespace TemplateLanguage
 					return 'D';
 				case NodeType.Bracket:
 					return 'B';
+				case NodeType.Variable:
+					return '$';
 				default:
 					return ' ';
 			}

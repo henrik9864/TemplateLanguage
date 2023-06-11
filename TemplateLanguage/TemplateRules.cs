@@ -14,7 +14,7 @@ namespace Tokhenizer
 
         public TokenEnumerable GetEnumerable(ReadOnlySpan<char> text)
         {
-            return new TokenEnumerable(text, BracketRule, NumberRule, OperatorRule, SnippetRule, WhitespaceRule, StringRule);
+            return new TokenEnumerable(text, BracketRule, NumberRule, BoolRule, OperatorRule, SnippetRule, WhitespaceRule, StringRule);
         }
 
         bool BracketRule(ref Lexer lexer, out Token token)
@@ -51,7 +51,13 @@ namespace Tokhenizer
             if (lexer.IsString("=="))
                 return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Comparer);
 
-            if (lexer.Current == '$')
+			if (lexer.IsString("if"))
+				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.If);
+
+			if (lexer.IsString("else"))
+				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Operator, OperatorType.Else);
+
+			if (lexer.Current == '$')
                 return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Variable);
 
             if (lexer.Current == '=')
@@ -105,6 +111,17 @@ namespace Tokhenizer
 
             return lexer.TryCreateToken(out token, TokenType.Number, numberType);
         }
+
+        bool BoolRule(ref Lexer lexer, out Token token)
+        {
+			if (lexer.IsString("true"))
+				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Bool);
+
+			if (lexer.IsString("false"))
+				return lexer.ConsumeAndCreateToken(5, out token, TokenType.Bool);
+
+			return lexer.Fail(out token);
+		}
 
         bool WhitespaceRule(ref Lexer lexer, out Token token)
         {

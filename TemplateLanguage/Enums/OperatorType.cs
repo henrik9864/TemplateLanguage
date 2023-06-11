@@ -10,6 +10,9 @@
         Add,
         Subtract,
         Multiply,
-        Divide
+        Divide,
+
+        If,
+        Else,
     }
 }

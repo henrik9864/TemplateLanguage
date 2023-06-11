@@ -9,6 +9,7 @@
         Whitespace,
         String,
         LooseString,
-        Special
+        Special,
+        Bool
     }
 }
