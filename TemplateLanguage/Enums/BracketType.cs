@@ -3,6 +3,7 @@
     enum BracketType
     {
         Code,
+		Operator,
         String,
 		Open,
 		Close,

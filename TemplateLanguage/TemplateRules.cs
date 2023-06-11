@@ -22,7 +22,10 @@ namespace Tokhenizer
             if (lexer.Current == '|')
                 return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.Code);
 
-            if (lexer.Current == '"')
+			if (lexer.Current == ':')
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.Operator);
+
+			if (lexer.Current == '"')
                 return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.String);
 
 			if (lexer.Current == '(')

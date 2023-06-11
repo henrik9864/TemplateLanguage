@@ -17,6 +17,7 @@ namespace TemplateLanguage
 
 		Integer,
 		Float,
+		Bool,
 
 		Add,
 		Subtract,
@@ -130,13 +131,13 @@ namespace TemplateLanguage
 			};
 		}
 
-		public static void CreateIf(ref Node node, int right)
+		public static void CreateIf(ref Node node, int left)
 		{
 			node = new()
 			{
 				nodeType = NodeType.If,
-				left = -1,
-				right = right
+				left = left,
+				right = -1
 			};
 		}
 
@@ -147,6 +148,17 @@ namespace TemplateLanguage
 				nodeType = NodeType.Comparer,
 				left = left,
 				right = right
+			};
+		}
+
+		public static void CreateBool(ref Node node, Token token)
+		{
+			node = new()
+			{
+				nodeType = NodeType.Bool,
+				token = token,
+				left = -1,
+				right = -1
 			};
 		}
 	}

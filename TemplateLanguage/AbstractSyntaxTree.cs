@@ -119,9 +119,16 @@ namespace TemplateLanguage
 			Node.CreateName(ref nodeTree[currIdx++], token);
 		}
 
-		public void InsertIf()
+		public int InsertIf()
 		{
 			Node.CreateIf(ref nodeTree[currIdx], ++currIdx);
+
+			return currIdx - 1;
+		}
+
+		public void BranchIf(int ifIdx)
+		{
+			nodeTree[ifIdx].right = currIdx;
 		}
 
 		public void InsertComparer()
@@ -133,6 +140,11 @@ namespace TemplateLanguage
 			rootNode.right = currIdx;
 
 			currIdx++;
+		}
+
+		public void InsertBool(in Token token)
+		{
+			Node.CreateBool(ref nodeTree[currIdx++], token);
 		}
 
 		// --------- TERM & FACTOR ---------

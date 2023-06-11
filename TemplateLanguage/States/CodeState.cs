@@ -41,7 +41,13 @@ namespace TemplateLanguage
 				}
 				else if (token.Get<OperatorType>(1) == OperatorType.If)
 				{
-					ast.InsertIf();
+					var ifIdx = ast.InsertIf();
+
+					ast.BracketOpen();
+					sm.Transition(EngineState.Code, ref ast, repeatToken: false);
+					ast.BracketClose();
+
+					ast.BranchIf(ifIdx);
 				}
 				else if (token.Get<OperatorType>(1) == OperatorType.Comparer)
 				{
@@ -52,9 +58,16 @@ namespace TemplateLanguage
 			{
 				ast.InsertName(token);
 			}
-			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
+			else if (token.Get<TokenType>(0) == TokenType.Bracket)
 			{
-				return sm.PopState(false);
+				if (token.Get<BracketType>(1) == BracketType.Code)
+				{
+					return sm.PopState(false);
+				}
+				else if (token.Get<BracketType>(1) == BracketType.Operator)
+				{
+					return sm.PopState(false);
+				}
 			}
 			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Open)
 			{
@@ -63,6 +76,10 @@ namespace TemplateLanguage
 			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Close)
 			{
 				ast.BracketClose();
+			}
+			else if (token.Get<TokenType>(0) == TokenType.Bool)
+			{
+				ast.InsertBool(token);
 			}
 
 			return sm.Continue();

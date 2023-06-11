@@ -42,6 +42,10 @@ namespace TemplateLanguage
                     sb.Append(model[rightNode.token.GetSpan(txt)]);
 					break;
 				case NodeType.If:
+					bool leftNode = ComputeBool(rootNode.left);
+					if (leftNode)
+						Compute(rootNode.right, sb, model);
+
 					break;
 				case NodeType.Start:
 					Compute(rootNode.right, sb, model);
@@ -92,8 +96,12 @@ namespace TemplateLanguage
 
 			switch (rootNode.nodeType)
 			{
+				case NodeType.Bool:
+					return GetBool(rootNode.token.GetSpan(txt));
 				case NodeType.Variable:
 					return GetBool(rootNode.token.GetSpan(txt));
+				case NodeType.Bracket:
+					return ComputeBool(rootNode.right);
 				default:
 					throw new Exception("WTF!");
 			}
