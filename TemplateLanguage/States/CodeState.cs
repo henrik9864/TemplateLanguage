@@ -25,7 +25,7 @@ namespace TemplateLanguage
 
 		public ExitCode OnStep(ref ParsedTemplate sm, ref AbstractSyntaxTree ast, ref Token token)
 		{
-			if (token.Get<TokenType>(0) == TokenType.Number)
+            if (token.Get<TokenType>(0) == TokenType.Number)
 			{
 				ast.BracketOpen();
 				sm.Transition(EngineState.Term, ref ast, repeatToken: true);
@@ -47,11 +47,11 @@ namespace TemplateLanguage
 					sm.Transition(EngineState.Code, ref ast, repeatToken: false);
 					ast.BracketClose();
 
-					ast.BranchIf(ifIdx);
+					ast.SetRight(ifIdx);
 				}
-				else if (token.Get<OperatorType>(1) == OperatorType.Comparer)
+				else if (token.Get<OperatorType>(1) == OperatorType.Equals)
 				{
-					ast.InsertComparer();
+                    ast.InsertEquals();
 				}
 			}
 			else if (token.Get<TokenType>(0) == TokenType.String)

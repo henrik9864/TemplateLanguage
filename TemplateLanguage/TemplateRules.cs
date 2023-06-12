@@ -14,7 +14,7 @@ namespace Tokhenizer
 
         public TokenEnumerable GetEnumerable(ReadOnlySpan<char> text)
         {
-            return new TokenEnumerable(text, BracketRule, NumberRule, BoolRule, OperatorRule, SnippetRule, WhitespaceRule, StringRule);
+            return new TokenEnumerable(text, BracketRule, NumberRule, BoolRule, OperatorRule, NewLineRule, SnippetRule, WhitespaceRule, StringRule);
         }
 
         bool BracketRule(ref Lexer lexer, out Token token)
@@ -52,7 +52,7 @@ namespace Tokhenizer
         bool OperatorRule(ref Lexer lexer, out Token token)
         {
             if (lexer.IsString("=="))
-                return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Comparer);
+                return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Equals);
 
 			if (lexer.IsString("if"))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.If);
@@ -60,11 +60,17 @@ namespace Tokhenizer
 			if (lexer.IsString("else"))
 				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Operator, OperatorType.Else);
 
+			if (lexer.IsString("elif"))
+				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Operator, OperatorType.Elif);
+
+			if (lexer.IsString("end"))
+				return lexer.ConsumeAndCreateToken(3, out token, TokenType.Operator, OperatorType.End);
+
 			if (lexer.Current == '$')
                 return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Variable);
 
             if (lexer.Current == '=')
-                return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Setter);
+                return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Asssign);
 
             if (lexer.Current == '?')
                 return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Conditional);
@@ -126,7 +132,18 @@ namespace Tokhenizer
 			return lexer.Fail(out token);
 		}
 
-        bool WhitespaceRule(ref Lexer lexer, out Token token)
+		bool NewLineRule(ref Lexer lexer, out Token token)
+		{
+			if (lexer.Current == '\n')
+				return lexer.ConsumeAndCreateToken(1, out token, TokenType.NewLine);
+
+			if (lexer.IsString(Environment.NewLine))
+				return lexer.ConsumeAndCreateToken(Environment.NewLine.Length, out token, TokenType.NewLine);
+
+			return lexer.Fail(out token);
+		}
+
+		bool WhitespaceRule(ref Lexer lexer, out Token token)
         {
             while (!lexer.IsEnd() && char.IsWhiteSpace(lexer.Current))
                 lexer.Consume();

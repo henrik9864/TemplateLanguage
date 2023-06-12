@@ -27,7 +27,7 @@ namespace TemplateLanguage
 				case NodeType.Subtract:
 				case NodeType.Multiply:
 				case NodeType.Divide:
-					sb.Append(ComputeNumber(root));
+					sb.Append(ComputeNumber(root, model));
 					break;
 				case NodeType.Bracket:
 					Compute(rootNode.right, sb, model);
@@ -38,15 +38,27 @@ namespace TemplateLanguage
 					Compute(rootNode.left, sb, model);
 					break;
 				case NodeType.Variable:
-					ref readonly Node rightNode = ref nodes[rootNode.right];
-                    sb.Append(model[rightNode.token.GetSpan(txt)]);
-					break;
+					{
+						ref readonly Node rightNode = ref nodes[rootNode.right];
+						sb.Append(model[rightNode.token.GetSpan(txt)]);
+						break;
+					}
 				case NodeType.If:
-					bool leftNode = ComputeBool(rootNode.left);
-					if (leftNode)
-						Compute(rootNode.right, sb, model);
+					{
+						bool leftNode = ComputeBool(rootNode.left, model);
+						if (leftNode)
+							Compute(rootNode.right, sb, model);
 
-					break;
+						break;
+					}
+				case NodeType.Equals:
+					{
+						float leftNode = ComputeNumber(rootNode.left, model);
+						float rightNode = ComputeNumber(rootNode.right, model);
+
+						sb.Append(leftNode == rightNode);
+						break;
+					}
 				case NodeType.Start:
 					Compute(rootNode.right, sb, model);
 					break;
@@ -57,51 +69,78 @@ namespace TemplateLanguage
 			}
 		}
 
-		float ComputeNumber(int root)
+		float ComputeNumber(int root, IModel model)
 		{
             ref readonly Node rootNode = ref nodes[root];
 
 			switch (rootNode.nodeType)
 			{
 				case NodeType.Add:
-					float leftNode = ComputeNumber(rootNode.left);
-					float rightNode = ComputeNumber(rootNode.right);
-					return leftNode + rightNode;
+					{
+						float leftNode = ComputeNumber(rootNode.left, model);
+						float rightNode = ComputeNumber(rootNode.right, model);
+						return leftNode + rightNode;
+					}
 				case NodeType.Subtract:
-					leftNode = ComputeNumber(rootNode.left);
-					rightNode = ComputeNumber(rootNode.right);
+					{
+						float leftNode = ComputeNumber(rootNode.left, model);
+						float rightNode = ComputeNumber(rootNode.right, model);
                     return leftNode - rightNode;
+					}
 				case NodeType.Multiply:
-					leftNode = ComputeNumber(rootNode.left);
-					rightNode = ComputeNumber(rootNode.right);
-                    return leftNode * rightNode;
+					{
+						float leftNode = ComputeNumber(rootNode.left, model);
+						float rightNode = ComputeNumber(rootNode.right, model);
+						return leftNode * rightNode;
+					}
 				case NodeType.Divide:
-					leftNode = ComputeNumber(rootNode.left);
-					rightNode = ComputeNumber(rootNode.right);
+					{
+					float leftNode = ComputeNumber(rootNode.left, model);
+					float rightNode = ComputeNumber(rootNode.right, model);
                     return leftNode / rightNode;
+					}
 				case NodeType.Integer:
 					return GetInt(rootNode.token.GetSpan(txt));
 				case NodeType.Float:
 					return GetFloat(rootNode.token.GetSpan(txt));
+				case NodeType.Variable:
+					{
+						ref readonly Node rightNode = ref nodes[rootNode.right];
+						return GetFloat(model[rightNode.token.GetSpan(txt)]);
+					}
 				case NodeType.Bracket:
-					return ComputeNumber(rootNode.right);
+					return ComputeNumber(rootNode.right, model);
 				default:
 					throw new Exception("WTF!");
 			}
 		}
 
-		bool ComputeBool(int root)
+		bool ComputeBool(int root, IModel model)
 		{
 			ref readonly Node rootNode = ref nodes[root];
 
 			switch (rootNode.nodeType)
 			{
 				case NodeType.Bool:
-					return GetBool(rootNode.token.GetSpan(txt));
+					{
+						return GetBool(rootNode.token.GetSpan(txt));
+					}
 				case NodeType.Variable:
-					return GetBool(rootNode.token.GetSpan(txt));
+					{
+						ref readonly Node rightNode = ref nodes[rootNode.right];
+						return GetBool(model[rightNode.token.GetSpan(txt)]);
+					}
+				case NodeType.Equals:
+					{
+						float leftNode = ComputeNumber(rootNode.left, model);
+						float rightNode = ComputeNumber(rootNode.right, model);
+
+						return leftNode == rightNode;
+					}
 				case NodeType.Bracket:
-					return ComputeBool(rootNode.right);
+					{
+						return ComputeBool(rootNode.right, model);
+					}
 				default:
 					throw new Exception("WTF!");
 			}

@@ -54,11 +54,17 @@ namespace TemplateLanguage
 			{
 				ast.InsertOperator(NodeType.Divide);
 			}
-			else if (token.Get<TokenType>(0) == TokenType.Operator)
+			else if (token.Get<TokenType>(0) == TokenType.Operator && (token.Get<OperatorType>(1) == OperatorType.Multiply || token.Get<OperatorType>(1) == OperatorType.Divide))
 			{
-				ref OperatorType type = ref token.Get<OperatorType>(1);
-				if (type == OperatorType.Add || type == OperatorType.Subtract)
-					return sm.PopState(true);
+				return sm.PopState(true);
+			}
+			else if (token.Get<TokenType>(0) == TokenType.Whitespace)
+			{
+				return sm.Continue();
+			}
+			else
+			{
+				return sm.PopState(true);
 			}
 
 			return sm.Continue();

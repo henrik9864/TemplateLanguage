@@ -29,7 +29,7 @@ namespace TemplateLanguage
 
 		If,
 		Else,
-		Comparer,
+		Equals,
 	}
 
 	struct Node
@@ -138,16 +138,6 @@ namespace TemplateLanguage
 				nodeType = NodeType.If,
 				left = left,
 				right = -1
-			};
-		}
-
-		public static void CreateComparer(ref Node node, int right, int left)
-		{
-			node = new()
-			{
-				nodeType = NodeType.Comparer,
-				left = left,
-				right = right
 			};
 		}
 

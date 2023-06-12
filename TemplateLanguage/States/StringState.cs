@@ -32,7 +32,9 @@ namespace TemplateLanguage
 			if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
 			{
                 ast.StartCodeBlock();
+				ast.BracketOpen();
 				var result = sm.Transition(EngineState.Code, ref ast);
+				ast.BracketClose();
 				ast.BracketClose();
 
 				return result;

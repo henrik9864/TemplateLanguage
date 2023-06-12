@@ -57,17 +57,13 @@ namespace TemplateLanguage
 			{
 				ast.InsertOperator(NodeType.Subtract);
 			}
-			else if (token.Get<TokenType>(0) == TokenType.Operator)
+			else if (token.Get<TokenType>(0) == TokenType.Operator && (token.Get<OperatorType>(1) == OperatorType.Multiply || token.Get<OperatorType>(1) == OperatorType.Divide))
 			{
-				ref OperatorType type = ref token.Get<OperatorType>(1);
-				if (type == OperatorType.Multiply || type == OperatorType.Divide)
-				{
-					ast.BracketOpenBetween();
-					sm.Transition(EngineState.Factor, ref ast, repeatToken: true);
-					ast.BracketClose();
+				ast.BracketOpenBetween();
+				sm.Transition(EngineState.Factor, ref ast, repeatToken: true);
+				ast.BracketClose();
 
-					return OnStep(ref sm, ref ast, ref token);
-				}
+				return OnStep(ref sm, ref ast, ref token);
 			}
 			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Open)
 			{
@@ -76,6 +72,14 @@ namespace TemplateLanguage
 			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Close)
 			{
 				ast.BracketClose();
+			}
+			else if (token.Get<TokenType>(0) == TokenType.Whitespace)
+			{
+				return sm.Continue();
+			}
+			else
+			{
+                return sm.PopState(true);
 			}
 
 			return sm.Continue();

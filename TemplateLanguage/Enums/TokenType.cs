@@ -10,6 +10,7 @@
         String,
         LooseString,
         Special,
-        Bool
+        Bool,
+        NewLine
     }
 }

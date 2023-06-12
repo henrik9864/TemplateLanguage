@@ -126,17 +126,17 @@ namespace TemplateLanguage
 			return currIdx - 1;
 		}
 
-		public void BranchIf(int ifIdx)
+		public void SetRight(int ifIdx)
 		{
 			nodeTree[ifIdx].right = currIdx;
 		}
 
-		public void InsertComparer()
+		public void InsertEquals()
 		{
 			int rootIdx = root.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
-			Node.CreateComparer(ref nodeTree[currIdx], currIdx + 1, rootNode.right);
+			Node.CreateOperator(ref nodeTree[currIdx], NodeType.Equals, currIdx + 1, rootNode.right);
 			rootNode.right = currIdx;
 
 			currIdx++;

@@ -3,8 +3,10 @@
     enum OperatorType
     {
         Variable,
-        Setter,
-        Comparer,
+        Asssign,
+        Equals,
+        Greater,
+        Less,
         Conditional,
 
         Add,
@@ -14,5 +16,7 @@
 
         If,
         Else,
+        Elif,
+        End,
     }
 }
