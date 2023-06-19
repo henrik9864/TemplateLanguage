@@ -1,4 +1,1 @@
-﻿|
-if 3+2*(4+$testVar) == 23:
-	$result
-|
+﻿|if true:1|
