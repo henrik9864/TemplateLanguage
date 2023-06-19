@@ -23,10 +23,9 @@ namespace TemplateLanguage
     {
 		static Dictionary<EngineState, IState> stateDict = new()
 		{
-			{ EngineState.String,   new StringState() },
-			{ EngineState.Term,     new TermState() },
-			{ EngineState.Factor,   new FactorState() },
-			{ EngineState.Code,     new CodeState() },
+			{ EngineState.String,     new StringState() },
+			{ EngineState.Expression, new ExpressionState() },
+			{ EngineState.Code,       new CodeState() },
 		};
 
 		ReadOnlySpan<char> txt;
@@ -91,6 +90,12 @@ namespace TemplateLanguage
 
             return CalculateAst(newState, ref ast);
 		}
+
+        internal ref Token Consume()
+        {
+            enumerator.MoveNext();
+            return ref enumerator.Current;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ExitCode PopState(bool repeatToken)

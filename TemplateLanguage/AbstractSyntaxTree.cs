@@ -104,14 +104,20 @@ namespace TemplateLanguage
 			ref Node parentNode = ref nodeTree[rootNode.right];
 			parentNode.left = currIdx;
 
-			root.Push(currIdx);
+			BracketOpen();
+			//root.Push(currIdx);
 		}
 
 		// --------- CODE ---------
 
 		public void InsertVariable()
 		{
-			Node.CreateVariable(ref nodeTree[currIdx], ++currIdx);
+			int rootIdx = root.Peek();
+			ref Node rootNode = ref nodeTree[rootIdx];
+			rootNode.right = currIdx;
+
+			Node.CreateVariable(ref nodeTree[currIdx], currIdx - 1);
+			currIdx++;
 		}
 
 		public void InsertName(in Token token)
@@ -147,7 +153,7 @@ namespace TemplateLanguage
 			Node.CreateBool(ref nodeTree[currIdx++], token);
 		}
 
-		// --------- TERM & FACTOR ---------
+		// --------- EXPRESSION ---------
 
 		public void InsertOperator(NodeType type)
 		{
@@ -165,15 +171,6 @@ namespace TemplateLanguage
 			Node.CreateBracket(ref nodeTree[currIdx], currIdx + 1, -1);
 
 			root.Push(currIdx);
-			currIdx++;
-		}
-
-		public void BracketOpenBetween()
-		{
-			nodeTree[currIdx] = nodeTree[currIdx - 1];
-			Node.CreateBracket(ref nodeTree[currIdx - 1], currIdx, -1);
-
-			root.Push(currIdx - 1);
 			currIdx++;
 		}
 

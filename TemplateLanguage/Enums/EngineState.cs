@@ -4,7 +4,6 @@
     {
         Code,
         String,
-        Term,
-        Factor
+        Expression
     }
 }

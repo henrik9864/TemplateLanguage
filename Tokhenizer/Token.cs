@@ -54,7 +54,19 @@ namespace Tokhenizer
             data[slot] = data[slot] & ~Unsafe.As<T, uint>(ref Unsafe.AsRef(value));
         }
 
-        public ReadOnlySpan<char> GetSpan(in ReadOnlySpan<char> text)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Is<T>(T value) where T : unmanaged
+        {
+            return Get<T>(0).Equals(value);
+        }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Is<T1, T2>(T1 value1, T2 value2) where T1 : unmanaged where T2 : unmanaged
+		{
+			return Get<T1>(0).Equals(value1) && Get<T2>(1).Equals(value2);
+		}
+
+		public ReadOnlySpan<char> GetSpan(in ReadOnlySpan<char> text)
         {
             return text[range];
         }

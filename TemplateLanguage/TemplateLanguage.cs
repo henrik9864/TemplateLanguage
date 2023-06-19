@@ -59,6 +59,15 @@ namespace TemplateLanguage
 						sb.Append(leftNode == rightNode);
 						break;
 					}
+				case NodeType.Assign:
+					{
+                        float rightNode = ComputeNumber(rootNode.right, model);
+						ref readonly Node variableNode = ref nodes[rootNode.left];
+						ref readonly Node nameNode = ref nodes[variableNode.right];
+
+						model.Set(nameNode.token.GetSpan(txt), rightNode.ToString());
+						break;
+					}
 				case NodeType.Start:
 					Compute(rootNode.right, sb, model);
 					break;

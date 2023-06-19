@@ -1,6 +1,4 @@
 ﻿|
-if ($testVar == true)
-	1
-else
-	2
+if 3+2*(4+$testVar) == 23:
+	$result
 |

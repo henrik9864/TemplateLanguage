@@ -24,6 +24,7 @@ namespace TemplateLanguage
 		Multiply,
 		Divide,
 
+		Assign,
 		Variable,
 		Name,
 

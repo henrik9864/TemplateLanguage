@@ -153,10 +153,10 @@ namespace Tokhenizer
 
         bool StringRule(ref Lexer lexer, out Token token)
         {
-            while (!lexer.IsEnd() && !char.IsWhiteSpace(lexer.Current) && char.IsLetterOrDigit(lexer.Current) && !OperatorRule(ref lexer, out _) && !BracketRule(ref lexer, out _))
-                lexer.Consume();
+            while (!lexer.IsEnd() && char.IsLetterOrDigit(lexer.Current) && !OperatorRule(ref lexer, out _) && !BracketRule(ref lexer, out _))
+				lexer.Consume();
 
-            return lexer.TryCreateToken(out token, TokenType.String);
+			return lexer.TryCreateToken(out token, TokenType.String);
         }
     }
 }

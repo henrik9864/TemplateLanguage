@@ -4,42 +4,19 @@ namespace TemplateLanguage
 {
 	internal class CodeState : IState
 	{
-		/*
-		public void OnEnterAbove(ref ParsedTemplate sm, ref TemplateState state, EngineState prevState)
-		{
-		}
-
-		public void OnEnterBelow(ref ParsedTemplate sm, ref TemplateState state, EngineState prevState)
-		{
-			OnStep(ref sm, ref state);
-		}
-
-		public void OnExitAbove(ref ParsedTemplate sm, ref TemplateState state, EngineState newState)
-		{
-		}
-
-		public void OnExitBelow(ref ParsedTemplate sm, ref TemplateState state, EngineState newState)
-		{
-		}
-		*/
-
 		public ExitCode OnStep(ref ParsedTemplate sm, ref AbstractSyntaxTree ast, ref Token token)
 		{
-            if (token.Get<TokenType>(0) == TokenType.Number)
+            if (token.Is(TokenType.Number) || token.Is(TokenType.Operator, OperatorType.Variable))
 			{
 				ast.BracketOpen();
-				sm.Transition(EngineState.Term, ref ast, repeatToken: true);
+				sm.Transition(EngineState.Expression, ref ast, repeatToken: true);
 				ast.BracketClose();
 
                 return OnStep(ref sm, ref ast, ref token);
 			}
-			else if (token.Get<TokenType>(0) == TokenType.Operator)
+			else if (token.Is(TokenType.Operator))
 			{
-				if (token.Get<OperatorType>(1) == OperatorType.Variable)
-				{
-					ast.InsertVariable();
-				}
-				else if (token.Get<OperatorType>(1) == OperatorType.If)
+                if (token.Get<OperatorType>(1) == OperatorType.If)
 				{
 					var ifIdx = ast.InsertIf();
 
@@ -51,14 +28,14 @@ namespace TemplateLanguage
 				}
 				else if (token.Get<OperatorType>(1) == OperatorType.Equals)
 				{
-                    ast.InsertEquals();
+					ast.InsertOperator(NodeType.Equals);
+				}
+				else if (token.Get<OperatorType>(1) == OperatorType.Asssign)
+				{
+					ast.InsertOperator(NodeType.Assign);
 				}
 			}
-			else if (token.Get<TokenType>(0) == TokenType.String)
-			{
-				ast.InsertName(token);
-			}
-			else if (token.Get<TokenType>(0) == TokenType.Bracket)
+			else if (token.Is(TokenType.Bracket))
 			{
 				if (token.Get<BracketType>(1) == BracketType.Code)
 				{
@@ -69,15 +46,21 @@ namespace TemplateLanguage
 					return sm.PopState(false);
 				}
 			}
-			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Open)
+			else if (token.Is(TokenType.Bracket))
 			{
-				ast.BracketOpen();
+				switch (token.Get<BracketType>(1))
+				{
+					case BracketType.Open:
+						ast.BracketOpen();
+						sm.Transition(EngineState.Code, ref ast, repeatToken: false);
+						ast.BracketClose();
+
+						return OnStep(ref sm, ref ast, ref token);
+					default:
+						return sm.PopState(true);
+				}
 			}
-			else if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Close)
-			{
-				ast.BracketClose();
-			}
-			else if (token.Get<TokenType>(0) == TokenType.Bool)
+			else if (token.Is(TokenType.Bool))
 			{
 				ast.InsertBool(token);
 			}
