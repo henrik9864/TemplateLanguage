@@ -56,7 +56,7 @@ namespace TemplateLanguage
 
 						break;
 					default:
-						return sm.PopState(true);
+						return sm.PopState();
 				}
 
 				return sm.Continue();
@@ -72,11 +72,11 @@ namespace TemplateLanguage
 
 						return OnStep(ref sm, ref ast, ref token);
 					default:
-						return sm.PopState(true);
+						return sm.PopState();
 				}
 			}
 
-            return sm.PopState(true);
+            return sm.PopState();
 		}
 	}
 }

@@ -5,7 +5,7 @@ using Tokhenizer;
 
 var model = new TestModel();
 model.Add("testVar", "6");
-model.Add("testVar2", "3");
+model.Add("testVar2", "23");
 model.Add("result", "taper");
 
 var str = File.ReadAllText("simpler.tcs").AsMemory();
@@ -19,7 +19,7 @@ Console.WriteLine();
 Console.WriteLine("------- Model -------");
 
 Console.WriteLine($"testVar = 6");
-Console.WriteLine($"testVar2 = 3");
+Console.WriteLine($"testVar2 = 23");
 Console.WriteLine($"result = 'taper'");
 
 Console.WriteLine();

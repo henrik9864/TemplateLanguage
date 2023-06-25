@@ -10,7 +10,6 @@ namespace TemplateLanguage
     {
         Continue,
         Exit,
-        ExitAndRepeat,
     }
 
 	internal ref struct TemplateState
@@ -42,25 +41,31 @@ namespace TemplateLanguage
 			var nodeArr = ArrayPool<Node>.Shared.Rent(4096);
             var ast = new AbstractSyntaxTree(nodeArr);
 
-			ast.InsertStart();
-            CalculateAst(EngineState.String, ref ast);
-			ast.InsertEnd();
+            CalculateAst(EngineState.String, ref ast, false);
 
 			ComputeAst(sb, ref ast, model);
 
 			ArrayPool<Node>.Shared.Return(nodeArr);
 		}
 
-		ExitCode CalculateAst(EngineState engineState, ref AbstractSyntaxTree ast)
+		ExitCode CalculateAst(EngineState engineState, ref AbstractSyntaxTree ast, bool repeatToken)
         {
 			ref Token token = ref enumerator.Current;
-            while (true)
+
+			if (repeatToken)
+			{
+				var code = stateDict[engineState].OnStep(ref this, ref ast, ref token);
+				if (code == ExitCode.Exit)
+					return ExitCode.Continue;
+			}
+
+			while (true)
             {
                 if (!enumerator.MoveNext())
                     return ExitCode.Exit;
 
                 var code = stateDict[engineState].OnStep(ref this, ref ast, ref token);
-				if (code != ExitCode.Continue)
+				if (code == ExitCode.Exit)
 					return ExitCode.Continue;
 			}
 		}
@@ -74,21 +79,19 @@ namespace TemplateLanguage
 			};
 
 			ast.PrintTree(txt, false);
-			language.Compute(ast.GetRoot(), sb, model);
+
+            var roots = ast.GetStartingPoints();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                language.Compute(roots[i], sb, model);
+			}
 		}
 
-        internal ExitCode Transition(EngineState newState, ref AbstractSyntaxTree ast, bool repeatToken = false)
+        internal Range Transition(EngineState newState, ref AbstractSyntaxTree ast, bool repeatToken = false)
         {
-            if (repeatToken)
-            {
-				ref Token token = ref enumerator.Current;
-                var code = stateDict[newState].OnStep(ref this, ref ast, ref token);
-
-				if (code != ExitCode.Continue)
-					return ExitCode.Continue;
-			}
-
-            return CalculateAst(newState, ref ast);
+            int preIdx = ast.GetStartCount();
+            CalculateAst(newState, ref ast, repeatToken);
+            return preIdx..ast.GetStartCount();
 		}
 
         internal ref Token Consume()
@@ -98,9 +101,9 @@ namespace TemplateLanguage
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ExitCode PopState(bool repeatToken)
+        internal ExitCode PopState()
         {
-			return repeatToken ? ExitCode.ExitAndRepeat : ExitCode.Exit;
+			return ExitCode.Exit;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

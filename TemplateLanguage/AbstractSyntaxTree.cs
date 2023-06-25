@@ -1,78 +1,27 @@
-﻿using System.Buffers;
-using System.Text;
+﻿using System.Text;
 using Tokhenizer;
 
 namespace TemplateLanguage
 {
-	ref struct RefStack<T>
-	{
-		public int Count
-		{
-			get
-			{
-				return currIdx;
-			}
-		}
-
-		IMemoryOwner<T> buff;
-		int currIdx;
-
-        public RefStack(int capacity)
-        {
-			this.buff = MemoryPool<T>.Shared.Rent(capacity);
-			this.currIdx = 0;
-        }
-
-		public void Push(in T item)
-		{
-            buff.Memory.Span[currIdx++] = item;
-		}
-
-		public T Pop()
-		{
-			return buff.Memory.Span[--currIdx];
-		}
-
-		public ref T Peek(int offset = 0)
-		{
-			return ref buff.Memory.Span[currIdx + offset - 1];
-		}
-
-		public bool TryPeek(int offset, out T val)
-		{
-			if (currIdx + offset - 1 < buff.Memory.Length)
-			{
-				val = default;
-				return false;
-			}
-
-			val = Peek(offset);
-			return true;
-		}
-
-		public void Dispose()
-		{
-			buff.Dispose();
-		}
-    }
-
 	ref struct AbstractSyntaxTree
 	{
 		Span<Node> nodeTree;
-		RefStack<int> root;
+		RefStack<int> startPoints;
+		RefStack<int> currRoot;
 
 		int currIdx = 0;
 
 		public AbstractSyntaxTree(Span<Node> nodeTree)
 		{
             this.nodeTree = nodeTree;
-			root = new RefStack<int>(64);
-			root.Push(0);
+			startPoints = new RefStack<int>(64);
+			currRoot = new RefStack<int>(64);
+			currRoot.Push(0);
 		}
 
 		public void InsertNumber(in Token token, NodeType type)
 		{
-			int rootIdx = root.Peek();
+			int rootIdx = currRoot.Peek();
 			if (rootIdx == currIdx)
 				throw new Exception("Number cannot be a root.");
 
@@ -85,34 +34,26 @@ namespace TemplateLanguage
 
 		public void InsertString(in Token token)
 		{
-			int rootIdx = root.Peek();
-			ref Node rootNode = ref nodeTree[rootIdx];
-
-			if (rootNode.right == currIdx)
-				rootNode.right = -1;
-
-			Node.CreateString(ref nodeTree[currIdx], token, rootNode.right, -1);
-			rootNode.right = currIdx;
+			Node.CreateString(ref nodeTree[currIdx], token, -1, -1);
 
 			currIdx++;
 		}
 
 		public void StartCodeBlock()
 		{
-			int rootIdx = root.Peek();
+			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 			ref Node parentNode = ref nodeTree[rootNode.right];
 			parentNode.left = currIdx;
 
 			BracketOpen();
-			//root.Push(currIdx);
 		}
 
 		// --------- CODE ---------
 
 		public void InsertVariable()
 		{
-			int rootIdx = root.Peek();
+			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 			rootNode.right = currIdx;
 
@@ -132,6 +73,13 @@ namespace TemplateLanguage
 			return currIdx - 1;
 		}
 
+		public int InsertCompare()
+		{
+			Node.CreateCompare(ref nodeTree[currIdx], ++currIdx);
+
+			return currIdx - 1;
+		}
+
 		public void SetRight(int ifIdx)
 		{
 			nodeTree[ifIdx].right = currIdx;
@@ -139,7 +87,7 @@ namespace TemplateLanguage
 
 		public void InsertEquals()
 		{
-			int rootIdx = root.Peek();
+			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
 			Node.CreateOperator(ref nodeTree[currIdx], NodeType.Equals, currIdx + 1, rootNode.right);
@@ -157,7 +105,7 @@ namespace TemplateLanguage
 
 		public void InsertOperator(NodeType type)
 		{
-			int rootIdx = root.Peek();
+			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
 			Node.CreateOperator(ref nodeTree[currIdx], type, currIdx + 1, rootNode.right);
@@ -170,16 +118,16 @@ namespace TemplateLanguage
 		{
 			Node.CreateBracket(ref nodeTree[currIdx], currIdx + 1, -1);
 
-			root.Push(currIdx);
+			currRoot.Push(currIdx);
 			currIdx++;
 		}
 
 		public void BracketClose()
 		{
-			if (root.Count == 1)
+			if (currRoot.Count == 1)
 				throw new Exception("Root stack must never be empty.");
 
-			root.Pop();
+			currRoot.Pop();
 		}
 
 		// ------------------
@@ -201,12 +149,26 @@ namespace TemplateLanguage
 
 		public int GetStackDepth()
 		{
-			return root.Count;
+			return currRoot.Count;
 		}
 
-		public int GetRoot()
+		public void AddStartPoint()
 		{
-			return root.Peek();
+			if (currRoot.Count != 1)
+				throw new Exception("Root depth must be 1 to be saved.");
+
+			startPoints.Push(currRoot.Pop());
+			currRoot.Push(currIdx);
+		}
+
+		public int GetStartCount()
+		{
+			return startPoints.Count;
+		}
+
+		public ReadOnlySpan<int> GetStartingPoints()
+		{
+			return startPoints.AsSpan();
 		}
 	}
 
@@ -251,8 +213,13 @@ namespace TemplateLanguage
 			Console.WriteLine();
             Console.WriteLine();
 
-            List<int> visited = new List<int>();
-            PrintTree(txt, tree, ast.GetRoot(), 0, visited, simplified);
+			var roots = ast.GetStartingPoints();
+			for (int i = 0; i < roots.Length; i++)
+			{
+				List<int> visited = new List<int>();
+				PrintTree(txt, tree, roots[i], 0, visited, simplified);
+				Console.WriteLine();
+			}
 		}
 
 		static void PrintTree(in ReadOnlySpan<char> txt, in ReadOnlySpan<Node> nodeTree, int node, int indent, List<int> visited, bool simplified)

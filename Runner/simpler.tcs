@@ -1,1 +1,5 @@
-﻿|if true:1|
+﻿|
+$testVar == 4
+$testVar = 4
+$testVar == 4
+|

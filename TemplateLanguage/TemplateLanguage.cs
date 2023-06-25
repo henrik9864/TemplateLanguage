@@ -8,6 +8,8 @@ namespace TemplateLanguage
 		public ReadOnlySpan<char> txt;
 		public ReadOnlySpan<Node> nodes;
 
+		bool ifIsTrue;
+
 		public void Compute(int root, StringBuilder sb, IModel model)
 		{
 			if (root == -1)
@@ -45,10 +47,21 @@ namespace TemplateLanguage
 					}
 				case NodeType.If:
 					{
+						Compute(rootNode.left, sb, model);
+
+						if (ifIsTrue)
+							Compute(rootNode.right, sb, model);
+
+						ifIsTrue = false;
+						break;
+					}
+				case NodeType.Compare:
+					{
 						bool leftNode = ComputeBool(rootNode.left, model);
 						if (leftNode)
 							Compute(rootNode.right, sb, model);
 
+						ifIsTrue = leftNode;
 						break;
 					}
 				case NodeType.Equals:
