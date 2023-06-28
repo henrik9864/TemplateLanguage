@@ -41,6 +41,7 @@ namespace TemplateLanguage
 			var nodeArr = ArrayPool<Node>.Shared.Rent(4096);
             var ast = new AbstractSyntaxTree(nodeArr);
 
+            ast.InsertStart();
             CalculateAst(EngineState.String, ref ast, false);
 
 			ComputeAst(sb, ref ast, model);
@@ -80,18 +81,12 @@ namespace TemplateLanguage
 
 			ast.PrintTree(txt, false);
 
-            var roots = ast.GetStartingPoints();
-            for (int i = 0; i < roots.Length; i++)
-            {
-                language.Compute(roots[i], sb, model);
-			}
+			language.Compute(ast.GetRoot(), sb, model);
 		}
 
-        internal Range Transition(EngineState newState, ref AbstractSyntaxTree ast, bool repeatToken = false)
+        internal void Transition(EngineState newState, ref AbstractSyntaxTree ast, bool repeatToken = false)
         {
-            int preIdx = ast.GetStartCount();
             CalculateAst(newState, ref ast, repeatToken);
-            return preIdx..ast.GetStartCount();
 		}
 
         internal ref Token Consume()

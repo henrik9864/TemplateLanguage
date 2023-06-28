@@ -9,7 +9,7 @@ namespace TemplateLanguage
 	{
 		public ExitCode OnStep(ref ParsedTemplate sm, ref AbstractSyntaxTree ast, ref Token token)
 		{
-			if (token.Is(TokenType.Whitespace))
+            if (token.Is(TokenType.Whitespace))
 				return sm.Continue();
 
 			if (token.Is(TokenType.Number))
@@ -66,11 +66,11 @@ namespace TemplateLanguage
 				switch (token.Get<BracketType>(1))
 				{
 					case BracketType.Open:
-						ast.BracketOpen();
+                        ast.BracketOpen();
 						sm.Transition(EngineState.Expression, ref ast, repeatToken: false);
 						ast.BracketClose();
 
-						return OnStep(ref sm, ref ast, ref token);
+						return sm.Continue();
 					default:
 						return sm.PopState();
 				}

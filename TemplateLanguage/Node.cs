@@ -11,8 +11,10 @@ namespace TemplateLanguage
 	{
 		Start,
 		End,
+		NewLine,
 
 		String,
+		CodeBlock,
 		Bracket,
 
 		Integer,
@@ -40,127 +42,27 @@ namespace TemplateLanguage
 		public Token token;
 
 		public int right;
+		public int middle;
 		public int left;
 
-		public Node(NodeType nodeType, Token token, int right, int left)
+		public Node(NodeType nodeType, Token token, int right, int middle, int left)
 		{
 			this.nodeType = nodeType;
 			this.token = token;
 			this.right = right;
+			this.middle = middle;
 			this.left = left;
 		}
 
-		public static void CreateStart(ref Node node, int right)
+		public static void Create(ref Node node, NodeType nodeType, Token token = default, int right = -1, int middle = -1, int left = -1)
 		{
 			node = new()
 			{
-				nodeType = NodeType.Start,
+				nodeType = nodeType,
+				token = token,
 				right = right,
-				left = -1
-			};
-		}
-
-		public static void CreateEnd(ref Node node)
-		{
-			node = new()
-			{
-				nodeType = NodeType.End,
-				right = -1,
-				left = -1
-			};
-		}
-
-		public static void CreateNumber(ref Node node, Token token, NodeType type)
-		{
-			node = new()
-			{
-				nodeType = type,
-				token = token,
-				left = -1,
-				right = -1
-			};
-		}
-
-		public static void CreateOperator(ref Node node, NodeType type, int right, int left)
-		{
-			node = new()
-			{
-				nodeType = type,
-				left = left,
-				right = right
-			};
-		}
-
-		public static void CreateBracket(ref Node node, int right, int parent)
-		{
-			node = new()
-			{
-				nodeType = NodeType.Bracket,
-				left = -1,
-				right = right
-			};
-		}
-
-		public static void CreateString(ref Node node, Token token, int right, int left)
-		{
-			node = new()
-			{
-				nodeType = NodeType.String,
-				token = token,
-				left = left,
-				right = right
-			};
-		}
-
-		public static void CreateVariable(ref Node node, int right)
-		{
-			node = new()
-			{
-				nodeType = NodeType.Variable,
-				left = -1,
-				right = right
-			};
-		}
-
-		public static void CreateName(ref Node node, Token token)
-		{
-			node = new()
-			{
-				nodeType = NodeType.Name,
-				token = token,
-				left = -1,
-				right = -1
-			};
-		}
-
-		public static void CreateIf(ref Node node, int left)
-		{
-			node = new()
-			{
-				nodeType = NodeType.If,
-				left = left,
-				right = -1
-			};
-		}
-
-		public static void CreateCompare(ref Node node, int left)
-		{
-			node = new()
-			{
-				nodeType = NodeType.Compare,
-				left = left,
-				right = -1
-			};
-		}
-
-		public static void CreateBool(ref Node node, Token token)
-		{
-			node = new()
-			{
-				nodeType = NodeType.Bool,
-				token = token,
-				left = -1,
-				right = -1
+				middle = middle,
+				left = left
 			};
 		}
 	}

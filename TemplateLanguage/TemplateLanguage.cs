@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace TemplateLanguage
@@ -7,8 +8,6 @@ namespace TemplateLanguage
 	{
 		public ReadOnlySpan<char> txt;
 		public ReadOnlySpan<Node> nodes;
-
-		bool ifIsTrue;
 
 		public void Compute(int root, StringBuilder sb, IModel model)
 		{
@@ -37,6 +36,9 @@ namespace TemplateLanguage
 				case NodeType.String:
 					Compute(rootNode.right, sb, model);
                     sb.Append(rootNode.token.GetSpan(txt));
+					break;
+				case NodeType.CodeBlock:
+					Compute(rootNode.right, sb, model);
 					Compute(rootNode.left, sb, model);
 					break;
 				case NodeType.Variable:
@@ -47,21 +49,11 @@ namespace TemplateLanguage
 					}
 				case NodeType.If:
 					{
-						Compute(rootNode.left, sb, model);
-
-						if (ifIsTrue)
+						if (ComputeBool(rootNode.left, model))
+							Compute(rootNode.middle, sb, model);
+						else
 							Compute(rootNode.right, sb, model);
 
-						ifIsTrue = false;
-						break;
-					}
-				case NodeType.Compare:
-					{
-						bool leftNode = ComputeBool(rootNode.left, model);
-						if (leftNode)
-							Compute(rootNode.right, sb, model);
-
-						ifIsTrue = leftNode;
 						break;
 					}
 				case NodeType.Equals:
@@ -75,10 +67,12 @@ namespace TemplateLanguage
 				case NodeType.Assign:
 					{
                         float rightNode = ComputeNumber(rootNode.right, model);
-						ref readonly Node variableNode = ref nodes[rootNode.left];
+						ref readonly Node variableNode = ref nodes[ComputeVariable(rootNode.left)];
 						ref readonly Node nameNode = ref nodes[variableNode.right];
 
-						model.Set(nameNode.token.GetSpan(txt), rightNode.ToString());
+                        Console.WriteLine($"Name: {nameNode.nodeType} Var: {variableNode.nodeType}");
+
+                        model.Set(nameNode.token.GetSpan(txt), rightNode.ToString());
 						break;
 					}
 				case NodeType.Start:
@@ -162,6 +156,25 @@ namespace TemplateLanguage
 				case NodeType.Bracket:
 					{
 						return ComputeBool(rootNode.right, model);
+					}
+				default:
+					throw new Exception("WTF!");
+			}
+		}
+
+		int ComputeVariable(int root)
+		{
+			ref readonly Node rootNode = ref nodes[root];
+
+			switch (rootNode.nodeType)
+			{
+				case NodeType.Bracket:
+					{
+						return ComputeVariable(rootNode.right);
+					}
+				case NodeType.Variable:
+					{
+						return root;
 					}
 				default:
 					throw new Exception("WTF!");

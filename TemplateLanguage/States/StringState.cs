@@ -9,12 +9,14 @@ namespace TemplateLanguage
 		{
 			if (token.Get<TokenType>(0) == TokenType.Bracket && token.Get<BracketType>(1) == BracketType.Code)
 			{
+				ast.StartCodeBlock();
+				ast.BracketOpen();
 				sm.Transition(EngineState.Code, ref ast);
+				ast.BracketClose();
             }
 			else
 			{
 				ast.InsertString(token);
-				ast.AddStartPoint();
 			}
 
 			return sm.Continue();

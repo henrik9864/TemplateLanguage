@@ -20,6 +20,7 @@ namespace TemplateLanguage.Test
 		[TestMethod]
 		public void TestString()
 		{
+			Assert.AreEqual("", RunLanguage("||", model));
 			Assert.AreEqual("2+3", RunLanguage("2+3", model));
 			Assert.AreEqual("if true:1", RunLanguage("if true:1", model));
 			Assert.AreEqual("lmao 19.5123", RunLanguage("lmao |3*(4+2.5)|123", model));
@@ -32,10 +33,12 @@ namespace TemplateLanguage.Test
 			Assert.AreEqual("5", RunLanguage("|2+3|", model));
 			Assert.AreEqual("5.5", RunLanguage("|2+3.5|", model));
 			Assert.AreEqual("12", RunLanguage("|3*4|", model));
+			Assert.AreEqual("12", RunLanguage("|(3*4)|", model));
 			Assert.AreEqual("14", RunLanguage("|2+3*4|", model));
 			Assert.AreEqual("14", RunLanguage("|3*4+2|", model));
 			Assert.AreEqual("18", RunLanguage("|3*(4+2)|", model));
 			Assert.AreEqual("19.5", RunLanguage("|3*(4+2.5)|", model));
+			Assert.AreEqual("24.5", RunLanguage("|3*(4+2.5)+5|", model));
 		}
 
 		[TestMethod]
@@ -50,12 +53,13 @@ namespace TemplateLanguage.Test
 		[TestMethod]
 		public void TestIf()
 		{
-			Assert.AreEqual("1", RunLanguage("|if true:1|", model));
-			Assert.AreEqual("", RunLanguage("|if false:1|", model));
+			Assert.AreEqual("1", RunLanguage("|if true:1else2|", model));
+			Assert.AreEqual("2", RunLanguage("|if false:1else2|", model));
 			Assert.AreEqual("3", RunLanguage("|if 2==2:1+2|", model));
 			Assert.AreEqual("", RunLanguage("|if 3==2:1+2|", model));
 			Assert.AreEqual("3", RunLanguage("|if 3*(4+2.5)==19.5:1+2|", model));
-			Assert.AreEqual("3", RunLanguage("|if 3*(4+2.5)==3*(4+2.5):1+2|", model));
+			Assert.AreEqual("3", RunLanguage("|if 3*(4+2.5)==3*(4+2.5):1+2else3*(4+2.5)|", model));
+			Assert.AreEqual("19.5", RunLanguage("|if 3*(4+2.5)==3*(4+2.5)+5:1+2else3*(4+2.5)|", model));
 		}
 
 		[TestMethod]
@@ -69,7 +73,7 @@ namespace TemplateLanguage.Test
 		[TestMethod]
 		public void TestAssign()
 		{
-			//Assert.AreEqual("6 5", RunLanguage("|$testVar||$testVar=5||$testVar|", model));
+			Assert.AreEqual("65", RunLanguage("|$testVar||$testVar=5||$testVar|", model));
 		}
 
 		public string RunLanguage(ReadOnlySpan<char> txt, IModel model)

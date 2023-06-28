@@ -6,7 +6,6 @@ namespace TemplateLanguage
 	ref struct AbstractSyntaxTree
 	{
 		Span<Node> nodeTree;
-		RefStack<int> startPoints;
 		RefStack<int> currRoot;
 
 		int currIdx = 0;
@@ -14,27 +13,31 @@ namespace TemplateLanguage
 		public AbstractSyntaxTree(Span<Node> nodeTree)
 		{
             this.nodeTree = nodeTree;
-			startPoints = new RefStack<int>(64);
 			currRoot = new RefStack<int>(64);
 			currRoot.Push(0);
 		}
 
-		public void InsertNumber(in Token token, NodeType type)
+		// --------- START ---------
+
+		public void InsertStart()
 		{
-			int rootIdx = currRoot.Peek();
-			if (rootIdx == currIdx)
-				throw new Exception("Number cannot be a root.");
+			Node.Create(ref nodeTree[currIdx++], NodeType.Start);
+		}
 
-			Node.CreateNumber(ref nodeTree[currIdx], token, type);
-
-			currIdx++;
+		public void InsertEnd()
+		{
+			Node.Create(ref nodeTree[currIdx++], NodeType.End);
 		}
 
 		// --------- STRING ---------
 
 		public void InsertString(in Token token)
 		{
-			Node.CreateString(ref nodeTree[currIdx], token, -1, -1);
+			int rootIdx = currRoot.Peek();
+			ref Node rootNode = ref nodeTree[rootIdx];
+
+			Node.Create(ref nodeTree[currIdx], NodeType.String, token: token, right: rootNode.right);
+			rootNode.right = currIdx;
 
 			currIdx++;
 		}
@@ -43,41 +46,25 @@ namespace TemplateLanguage
 		{
 			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
-			ref Node parentNode = ref nodeTree[rootNode.right];
-			parentNode.left = currIdx;
 
-			BracketOpen();
+			Node.Create(ref nodeTree[currIdx], NodeType.CodeBlock, right: rootNode.right, left: currIdx + 1);
+			rootNode.right = currIdx;
+
+			currIdx++;
 		}
 
 		// --------- CODE ---------
 
-		public void InsertVariable()
-		{
-			int rootIdx = currRoot.Peek();
-			ref Node rootNode = ref nodeTree[rootIdx];
-			rootNode.right = currIdx;
-
-			Node.CreateVariable(ref nodeTree[currIdx], currIdx - 1);
-			currIdx++;
-		}
-
-		public void InsertName(in Token token)
-		{
-			Node.CreateName(ref nodeTree[currIdx++], token);
-		}
-
 		public int InsertIf()
 		{
-			Node.CreateIf(ref nodeTree[currIdx], ++currIdx);
+			Node.Create(ref nodeTree[currIdx], NodeType.If, left: ++currIdx);
 
 			return currIdx - 1;
 		}
 
-		public int InsertCompare()
+		public void SetMiddle(int ifIdx)
 		{
-			Node.CreateCompare(ref nodeTree[currIdx], ++currIdx);
-
-			return currIdx - 1;
+			nodeTree[ifIdx].middle = currIdx;
 		}
 
 		public void SetRight(int ifIdx)
@@ -85,20 +72,13 @@ namespace TemplateLanguage
 			nodeTree[ifIdx].right = currIdx;
 		}
 
-		public void InsertEquals()
-		{
-			int rootIdx = currRoot.Peek();
-			ref Node rootNode = ref nodeTree[rootIdx];
-
-			Node.CreateOperator(ref nodeTree[currIdx], NodeType.Equals, currIdx + 1, rootNode.right);
-			rootNode.right = currIdx;
-
-			currIdx++;
-		}
-
 		public void InsertBool(in Token token)
 		{
-			Node.CreateBool(ref nodeTree[currIdx++], token);
+			int rootIdx = currRoot.Peek();
+			if (rootIdx == currIdx)
+				throw new Exception("Bool cannot be a root.");
+
+			Node.Create(ref nodeTree[currIdx++], NodeType.Bool, token: token);
 		}
 
 		// --------- EXPRESSION ---------
@@ -108,15 +88,26 @@ namespace TemplateLanguage
 			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
-			Node.CreateOperator(ref nodeTree[currIdx], type, currIdx + 1, rootNode.right);
+			int left = rootNode.right == currIdx ? -1 : rootNode.right;
+
+			Node.Create(ref nodeTree[currIdx], type, right: currIdx + 1, left: left);
 			rootNode.right = currIdx;
 
 			currIdx++;
 		}
 
+		public void InsertNumber(in Token token, NodeType type)
+		{
+			int rootIdx = currRoot.Peek();
+			if (rootIdx == currIdx)
+				throw new Exception("Number cannot be a root.");
+
+			Node.Create(ref nodeTree[currIdx++], type, token: token);
+		}
+
 		public void BracketOpen()
 		{
-			Node.CreateBracket(ref nodeTree[currIdx], currIdx + 1, -1);
+			Node.Create(ref nodeTree[currIdx], NodeType.Bracket, right: currIdx + 1);
 
 			currRoot.Push(currIdx);
 			currIdx++;
@@ -130,17 +121,22 @@ namespace TemplateLanguage
 			currRoot.Pop();
 		}
 
-		// ------------------
+		public void InsertVariable()
+		{
+			int rootIdx = currRoot.Peek();
+			ref Node rootNode = ref nodeTree[rootIdx];
+			rootNode.right = currIdx;
 
-		public void InsertStart()
-		{
-			Node.CreateStart(ref nodeTree[currIdx], ++currIdx);
+			Node.Create(ref nodeTree[currIdx], NodeType.Variable, right: currIdx - 1);
+			currIdx++;
 		}
-		
-		public void InsertEnd()
+
+		public void InsertName(in Token token)
 		{
-			Node.CreateEnd(ref nodeTree[currIdx++]);
+			Node.Create(ref nodeTree[currIdx++], NodeType.Name, token: token);
 		}
+
+		// ------------------
 
 		public Span<Node> GetTree()
 		{
@@ -152,23 +148,9 @@ namespace TemplateLanguage
 			return currRoot.Count;
 		}
 
-		public void AddStartPoint()
+		public int GetRoot()
 		{
-			if (currRoot.Count != 1)
-				throw new Exception("Root depth must be 1 to be saved.");
-
-			startPoints.Push(currRoot.Pop());
-			currRoot.Push(currIdx);
-		}
-
-		public int GetStartCount()
-		{
-			return startPoints.Count;
-		}
-
-		public ReadOnlySpan<int> GetStartingPoints()
-		{
-			return startPoints.AsSpan();
+			return currRoot.Peek();
 		}
 	}
 
@@ -213,13 +195,8 @@ namespace TemplateLanguage
 			Console.WriteLine();
             Console.WriteLine();
 
-			var roots = ast.GetStartingPoints();
-			for (int i = 0; i < roots.Length; i++)
-			{
-				List<int> visited = new List<int>();
-				PrintTree(txt, tree, roots[i], 0, visited, simplified);
-				Console.WriteLine();
-			}
+			List<int> visited = new List<int>();
+			PrintTree(txt, tree, ast.GetRoot(), 0, visited, simplified);
 		}
 
 		static void PrintTree(in ReadOnlySpan<char> txt, in ReadOnlySpan<Node> nodeTree, int node, int indent, List<int> visited, bool simplified)
@@ -259,6 +236,7 @@ namespace TemplateLanguage
 			visited.Add(node);
 
 			PrintTree(txt, nodeTree, nodeTree[node].right, indent + 1, visited, simplified);
+			PrintTree(txt, nodeTree, nodeTree[node].middle, indent + 1, visited, simplified);
 			PrintTree(txt, nodeTree, nodeTree[node].left, indent + 1, visited, simplified);
 		}
 
@@ -314,6 +292,10 @@ namespace TemplateLanguage
 					Console.BackgroundColor = ConsoleColor.Yellow;
 					Console.ForegroundColor = ConsoleColor.Black;
 					break;
+				case NodeType.CodeBlock:
+					Console.BackgroundColor = ConsoleColor.Green;
+					Console.ForegroundColor = ConsoleColor.Black;
+					break;
 				default:
 					break;
 			}
@@ -347,6 +329,8 @@ namespace TemplateLanguage
 					return 'B';
 				case NodeType.Variable:
 					return '$';
+				case NodeType.CodeBlock:
+					return 'C';
 				default:
 					return ' ';
 			}
