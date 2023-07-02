@@ -11,13 +11,8 @@ namespace TemplateLanguage
     {
         ReadOnlySpan<char> this[ReadOnlySpan<char> name] { get; }
 
-		void Add(ReadOnlySpan<char> name, string var);
+        void Set(ReadOnlySpan<char> name, string var, ReturnType type);
 
-        void Set(ReadOnlySpan<char> name, string var);
+		ReturnType GetType(ReadOnlySpan<char> name);
 	}
-
-    public interface IParameter
-    {
-
-    }
 }

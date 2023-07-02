@@ -13,7 +13,7 @@ namespace TemplateLanguage
 		End,
 		NewLine,
 
-		String,
+		TextBlock,
 		CodeBlock,
 		Bracket,
 
@@ -28,7 +28,7 @@ namespace TemplateLanguage
 
 		Assign,
 		Variable,
-		Name,
+		String,
 
 		If,
 		Else,

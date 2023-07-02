@@ -8,7 +8,7 @@ namespace TemplateLanguage.Test
 	public class TemplateLanguageTest
 	{
 		TemplateRules templateRules = new TemplateRules();
-		IModel model;
+		TestModel model;
 
 		[TestInitialize]
 		public void Setup()
@@ -25,6 +25,14 @@ namespace TemplateLanguage.Test
 			Assert.AreEqual("if true:1", RunLanguage("if true:1", model));
 			Assert.AreEqual("lmao 19.5123", RunLanguage("lmao |3*(4+2.5)|123", model));
 			Assert.AreEqual("()*/+ 3123", RunLanguage("()*/+ |if 3*(4+2.5)==3*(4+2.5):1+2|123", model));
+		}
+
+		[TestMethod]
+		public void TestNewLine()
+		{
+			Assert.AreEqual("", RunLanguage("|\n|", model));
+			Assert.AreEqual("2", RunLanguage("|\n\n2\n\n|", model));
+			Assert.AreEqual("tes\n2g", RunLanguage("tes\n|\n\n2\n\n|g", model));
 		}
 
 		[TestMethod]
@@ -73,6 +81,7 @@ namespace TemplateLanguage.Test
 		[TestMethod]
 		public void TestAssign()
 		{
+			Assert.AreEqual("", RunLanguage("|$testVar=6|", model));
 			Assert.AreEqual("65", RunLanguage("|$testVar||$testVar=5||$testVar|", model));
 		}
 
@@ -93,21 +102,36 @@ namespace TemplateLanguage.Test
 		{
 			get
 			{
-				return data[string.GetHashCode(name)];
+				return data[string.GetHashCode(name)].Item1;
 			}
 		}
 
-		Dictionary<int, string> data = new Dictionary<int, string>();
+		Dictionary<int, (string, ReturnType)> data = new();
 
 		public void Add(ReadOnlySpan<char> name, string var)
 		{
-			data.Add(string.GetHashCode(name), var);
+			data.Add(string.GetHashCode(name), (var, ReturnType.String));
 		}
 
-		public void Set(ReadOnlySpan<char> name, string var)
+		public void Add(ReadOnlySpan<char> name, int var)
 		{
-			if (!data.TryAdd(string.GetHashCode(name), var))
-				data[string.GetHashCode(name)] = var;
+			data.Add(string.GetHashCode(name), (var.ToString(), ReturnType.Number));
+		}
+
+		public void Add(ReadOnlySpan<char> name, float var)
+		{
+			data.Add(string.GetHashCode(name), (var.ToString(), ReturnType.Number));
+		}
+
+		public void Set(ReadOnlySpan<char> name, string var, ReturnType type)
+		{
+			if (!data.TryAdd(string.GetHashCode(name), (var, type)))
+				data[string.GetHashCode(name)] = (var, type);
+		}
+
+		public ReturnType GetType(ReadOnlySpan<char> name)
+		{
+			throw new NotImplementedException();
 		}
 	}
 }

@@ -54,6 +54,12 @@ namespace Tokhenizer
             if (lexer.IsString("=="))
                 return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Equals);
 
+			if (lexer.Current == '<')
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Less);
+
+			if (lexer.Current == '>')
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Greater);
+
 			if (lexer.IsString("if"))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.If);
 

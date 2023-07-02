@@ -36,7 +36,7 @@ namespace TemplateLanguage
 			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
-			Node.Create(ref nodeTree[currIdx], NodeType.String, token: token, right: rootNode.right);
+			Node.Create(ref nodeTree[currIdx], NodeType.TextBlock, token: token, right: rootNode.right);
 			rootNode.right = currIdx;
 
 			currIdx++;
@@ -133,7 +133,7 @@ namespace TemplateLanguage
 
 		public void InsertName(in Token token)
 		{
-			Node.Create(ref nodeTree[currIdx++], NodeType.Name, token: token);
+			Node.Create(ref nodeTree[currIdx++], NodeType.String, token: token);
 		}
 
 		// ------------------
@@ -156,7 +156,7 @@ namespace TemplateLanguage
 
 	internal static class AbstractSyntaxTreeExtensions
 	{
-		public static void PrintTree(this ref AbstractSyntaxTree ast, in ReadOnlySpan<char> txt, bool simplified)
+		public static void PrintTree(this ref AbstractSyntaxTree ast, in ReadOnlySpan<char> txt, scoped ReadOnlySpan<ReturnType> returnTypes, bool simplified)
 		{
 			var tree = ast.GetTree();
 
@@ -196,10 +196,10 @@ namespace TemplateLanguage
             Console.WriteLine();
 
 			List<int> visited = new List<int>();
-			PrintTree(txt, tree, ast.GetRoot(), 0, visited, simplified);
+			PrintTree(txt, tree, returnTypes, ast.GetRoot(), 0, visited, simplified);
 		}
 
-		static void PrintTree(in ReadOnlySpan<char> txt, in ReadOnlySpan<Node> nodeTree, int node, int indent, List<int> visited, bool simplified)
+		static void PrintTree(in ReadOnlySpan<char> txt, in ReadOnlySpan<Node> nodeTree, in ReadOnlySpan<ReturnType> returnTypes, int node, int indent, List<int> visited, bool simplified)
 		{
 			if (node == -1)
 				return;
@@ -210,21 +210,21 @@ namespace TemplateLanguage
 			// Simplify printout
 			if (simplified && nodeRef.nodeType == NodeType.Bracket)
 			{
-				PrintTree(txt, nodeTree, nodeTree[node].right, indent, visited, simplified);
+				PrintTree(txt, nodeTree, returnTypes, nodeTree[node].right, indent, visited, simplified);
 				return;
 			}
 
 			if (nodeRef.nodeType == NodeType.Integer)
 			{
-				nodeInfo = $"{nodeRef.nodeType} - I: {node} V: {nodeRef.token.GetSpan(txt)} L: {nodeRef.left} R: {nodeRef.right}";
+				nodeInfo = $"{nodeRef.nodeType} - I: {node} V: {nodeRef.token.GetSpan(txt)} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
 			}
-			else if (nodeRef.nodeType == NodeType.String)
+			else if (nodeRef.nodeType == NodeType.TextBlock)
 			{
-				nodeInfo = $"{nodeRef.nodeType} - I: {node} C: {nodeRef.token.GetSpan(txt).Length} L: {nodeRef.left} R: {nodeRef.right}";
+				nodeInfo = $"{nodeRef.nodeType} - I: {node} C: {nodeRef.token.GetSpan(txt).Length} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
 			}
 			else
 			{
-				nodeInfo = $"{nodeRef.nodeType} - I: {node} L: {nodeRef.left} R: {nodeRef.right}";
+				nodeInfo = $"{nodeRef.nodeType} - I: {node} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
 			}
 
 			var line = $"{new string('│', int.Max(indent - 1, 0))}{(indent == 0 ? "" : "├")}{nodeInfo}";
@@ -235,9 +235,9 @@ namespace TemplateLanguage
 
 			visited.Add(node);
 
-			PrintTree(txt, nodeTree, nodeTree[node].right, indent + 1, visited, simplified);
-			PrintTree(txt, nodeTree, nodeTree[node].middle, indent + 1, visited, simplified);
-			PrintTree(txt, nodeTree, nodeTree[node].left, indent + 1, visited, simplified);
+			PrintTree(txt, nodeTree, returnTypes, nodeTree[node].right, indent + 1, visited, simplified);
+			PrintTree(txt, nodeTree, returnTypes, nodeTree[node].middle, indent + 1, visited, simplified);
+			PrintTree(txt, nodeTree, returnTypes, nodeTree[node].left, indent + 1, visited, simplified);
 		}
 
 		static void SetColor(in Node node)
@@ -255,11 +255,11 @@ namespace TemplateLanguage
 					Console.BackgroundColor = ConsoleColor.DarkGreen;
 					Console.ForegroundColor = ConsoleColor.Black;
 					break;
-				case NodeType.String:
+				case NodeType.TextBlock:
 					Console.BackgroundColor = ConsoleColor.Blue;
 					Console.ForegroundColor = ConsoleColor.Black;
 					break;
-				case NodeType.Name:
+				case NodeType.String:
 					Console.BackgroundColor = ConsoleColor.DarkBlue;
 					Console.ForegroundColor = ConsoleColor.Black;
 					break;
@@ -309,9 +309,9 @@ namespace TemplateLanguage
 					return 'B';
 				case NodeType.End:
 					return 'E';
-				case NodeType.String:
+				case NodeType.TextBlock:
 					return 'S';
-				case NodeType.Name:
+				case NodeType.String:
 					return 'N';
 				case NodeType.Integer:
 					return 'I';

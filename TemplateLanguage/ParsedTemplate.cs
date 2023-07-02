@@ -73,15 +73,18 @@ namespace TemplateLanguage
 
 		void ComputeAst(StringBuilder sb, ref AbstractSyntaxTree ast, IModel model)
         {
-			var language = new TemplateLanguage()
-			{
-				txt = txt,
-				nodes = ast.GetTree()
-			};
+            Span<Node> nodeTree = ast.GetTree();
+			Span<ReturnType> returnTypes = stackalloc ReturnType[nodeTree.Length];
 
-			ast.PrintTree(txt, false);
+            TemplateLanguageTypeResolver.ResolveTypes(ast.GetRoot(), nodeTree, returnTypes, txt, model);
 
-			language.Compute(ast.GetRoot(), sb, model);
+			ast.PrintTree(txt, returnTypes, false);
+
+            var language = new TemplateLanguage(txt, nodeTree, returnTypes);
+            var languageNew = new TemplateLanguageNew(txt, nodeTree, returnTypes);
+
+			//language.Compute(ast.GetRoot(), sb, model);
+			languageNew.Compute(ast.GetRoot(), sb, model);
 		}
 
         internal void Transition(EngineState newState, ref AbstractSyntaxTree ast, bool repeatToken = false)

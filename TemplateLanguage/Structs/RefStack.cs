@@ -1,7 +1,53 @@
 ﻿using System.Buffers;
+using System.Collections;
 
 namespace TemplateLanguage
 {
+	public class MethodContainer<TType, TMask, TAction> : IEnumerable<TAction> where TMask : Enum where TType : Enum
+	{
+		public int Count => maskBuff.Count;
+
+		List<(TType, TMask, TMask, TMask)> maskBuff;
+		List<TAction> methodBuff;
+
+		public MethodContainer()
+		{
+			this.maskBuff = new();
+			this.methodBuff = new();
+		}
+
+		public void Add(TType type, TMask rightMask, TMask middleMask, TMask leftMask, TAction action)
+		{
+			maskBuff.Add((type, rightMask, middleMask, leftMask));
+			methodBuff.Add(action);
+		}
+
+		public TAction Get(TType type, TMask rightMask, TMask middleMask, TMask leftMask)
+		{
+			for (int i = 0; i < Count; i++)
+			{
+				(TType t, TMask right, TMask middle, TMask left) = maskBuff[i];
+
+				if (t.Equals(type) && right.HasFlag(rightMask) && middle.HasFlag(middleMask) && left.HasFlag(leftMask))
+				{
+					return methodBuff[i];
+				}
+			}
+
+			throw new Exception($"Node not found, Type: {type}, Right: {rightMask}, Middle: {middleMask}, Left: {leftMask}");
+		}
+
+		public IEnumerator<TAction> GetEnumerator()
+		{
+			return methodBuff.GetEnumerator();
+		}
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return methodBuff.GetEnumerator();
+		}
+	}
+
 	public ref struct RefStack<T>
 	{
 		public readonly int Count => currIdx;

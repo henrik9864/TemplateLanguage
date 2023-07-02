@@ -40,20 +40,35 @@ class TestModel : IModel
 	{
 		get
 		{
-			return data[string.GetHashCode(name)];
+			return data[string.GetHashCode(name)].Item1;
 		}
 	}
 
-	Dictionary<int, string> data = new Dictionary<int, string>();
+	Dictionary<int, (string, ReturnType)> data = new();
 
     public void Add(ReadOnlySpan<char> name, string var)
     {
-        data.Add(string.GetHashCode(name), var);
+        data.Add(string.GetHashCode(name), (var, ReturnType.String));
     }
 
-	public void Set(ReadOnlySpan<char> name, string var)
+	public void Add(ReadOnlySpan<char> name, int var)
 	{
-		if (!data.TryAdd(string.GetHashCode(name), var))
-			data[string.GetHashCode(name)] = var;
+		data.Add(string.GetHashCode(name), (var.ToString(), ReturnType.Number));
+	}
+
+	public void Add(ReadOnlySpan<char> name, float var)
+	{
+		data.Add(string.GetHashCode(name), (var.ToString(), ReturnType.Number));
+	}
+
+	public void Set(ReadOnlySpan<char> name, string var, ReturnType type)
+	{
+		if (!data.TryAdd(string.GetHashCode(name), (var, type)))
+			data[string.GetHashCode(name)] = (var, type);
+	}
+
+	public ReturnType GetType(ReadOnlySpan<char> name)
+	{
+		return ReturnType.Number;
 	}
 }

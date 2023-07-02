@@ -1,9 +1,3 @@
-﻿Var Before: |$testVar|
-|
-if 5*2==5+5:
-	$testVar=12
-else
-	$testVar=7
-end
-|
-Var after: |$testVar|
+﻿test1 |
+2
+| test2
