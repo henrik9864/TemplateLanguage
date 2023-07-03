@@ -16,48 +16,53 @@ namespace TemplateLanguage
 		static MethodContainer<NodeType, ReturnType, TemplateMethod> voideMethods = new()
 		{
 			// -------- Start/Bracket --------
-			{ NodeType.Start, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Start },
-			{ NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Start },
+			{ NodeType.Start, ReturnType.Any, Start },
+			{ NodeType.Bracket, ReturnType.Any, Start },
+			{ NodeType.End, ReturnType.Any, End },
 
 			// ------ Text Block ------
-			{ NodeType.TextBlock, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, TextBlock },
+			{ NodeType.TextBlock, ReturnType.Any, TextBlock },
 
 			// ------ Code Block ------
-			{ NodeType.CodeBlock, ReturnType.Any, ReturnType.Unknown, ReturnType.Any, CodeBlock },
+			{ NodeType.CodeBlock, ReturnType.Any, ReturnType.Any, CodeBlock },
 
 			// ------ Operators ------
 			{ NodeType.If, ReturnType.Any, ReturnType.Any, ReturnType.Bool, If },
+			{ NodeType.Assign, ReturnType.Any, ReturnType.Any, Assign },
 		};
 
 		static MethodContainer<NodeType, ReturnType, TemplateMethod<float>> numberMethods = new()
 		{
 			// ------ Number ------
-			{ NodeType.Float, ReturnType.Unknown, ReturnType.Unknown, ReturnType.Unknown, Float },
-			{ NodeType.Integer, ReturnType.Unknown, ReturnType.Unknown, ReturnType.Unknown, Integer },
+			{ NodeType.Float, Float },
+			{ NodeType.Integer, Integer },
 
 			// ------ Operators ------
-			{ NodeType.Add, ReturnType.Number, ReturnType.Unknown, ReturnType.Number, Add },
-			{ NodeType.Subtract, ReturnType.Number, ReturnType.Unknown, ReturnType.Number, Subtract },
-			{ NodeType.Multiply, ReturnType.Number, ReturnType.Unknown, ReturnType.Number, Multiply },
-			{ NodeType.Divide, ReturnType.Number, ReturnType.Unknown, ReturnType.Number, Divide },
+			{ NodeType.Add, ReturnType.Number | ReturnType.Variable, ReturnType.Number | ReturnType.Variable, Add },
+			{ NodeType.Subtract, ReturnType.Number | ReturnType.Variable, ReturnType.Number | ReturnType.Variable, Subtract },
+			{ NodeType.Multiply, ReturnType.Number | ReturnType.Variable, ReturnType.Number | ReturnType.Variable, Multiply },
+			{ NodeType.Divide, ReturnType.Number | ReturnType.Variable, ReturnType.Number | ReturnType.Variable, Divide },
 			
-			// ------ Operators ------
-			{ NodeType.Variable, ReturnType.String, ReturnType.Unknown, ReturnType.Unknown, VariableNumber },
+			// ------ Variable ------
+			{ NodeType.Variable, ReturnType.String, VariableNumber },
 		};
 
 		static MethodContainer<NodeType, ReturnType, TemplateMethod<bool>> boolMethods = new()
 		{
 			// ------ Bool ------
-			{ NodeType.Bool, ReturnType.Unknown, ReturnType.Unknown, ReturnType.Unknown, Bool },
+			{ NodeType.Bool, Bool },
 
 			// ------ Operators ------
-			{ NodeType.Equals, ReturnType.Number | ReturnType.Bool, ReturnType.Unknown, ReturnType.Number | ReturnType.Bool, Equals },
+			{ NodeType.Equals, ReturnType.Number | ReturnType.Bool | ReturnType.Variable, ReturnType.Number | ReturnType.Bool | ReturnType.Variable, Equals },
 		};
 
 		static MethodContainer<NodeType, ReturnType, TemplateMethod<Range>> strMethods = new()
 		{
 			// ------ String ------
-			{ NodeType.String, ReturnType.Unknown, ReturnType.Unknown, ReturnType.Unknown, String },
+			{ NodeType.String, String },
+
+			// ------ Variable ------
+			{ NodeType.Variable, ReturnType.String, Variable },
 		};
 
 		static TemplateLanguageRules()
@@ -90,28 +95,66 @@ namespace TemplateLanguage
 			ref readonly Node node = ref context.nodes[nodeIdx];
 			Compute(ref context, node.right, sb, model);
 
+
 			ReturnType type = GetType(ref context, node.left);
-			switch (type)
+			if (type.HasFlag(ReturnType.Number))
+			{
+				float value = Compute(ref context, node.left, sb, model, numberMethods);
+				sb.Append(value);
+			}
+			else if (type.HasFlag(ReturnType.Bool))
+			{
+				bool value = Compute(ref context, node.left, sb, model, boolMethods);
+				sb.Append(value);
+			}
+			else if (type.HasFlag(ReturnType.String))
+			{
+
+			}
+			else if (type.HasFlag(ReturnType.Variable))
+			{
+
+			}
+			else
+			{
+				Compute(ref context, node.left, sb, model);
+			}
+		}
+
+		static void Assign(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		{
+			ref readonly Node node = ref context.nodes[nodeIdx];
+
+			ReturnType rightType = GetType(ref context, node.right);
+			ReturnType leftType = GetType(ref context, node.left);
+
+			if (!leftType.HasFlag(ReturnType.Variable))
+				throw new Exception($"Cannot assign to type {leftType}");
+
+			Range name = Compute(ref context, node.left, sb, model, strMethods);
+
+			switch (rightType)
 			{
 				case ReturnType.Number:
 					{
-						float value = Compute(ref context, node.left, sb, model, numberMethods);
-						sb.Append(value);
+						float val = Compute(ref context, node.right, sb, model, numberMethods);
+						model.Set(context.txt[name], val);
 					}
 					break;
 				case ReturnType.Bool:
 					{
-						bool value = Compute(ref context, node.left, sb, model, boolMethods);
-						sb.Append(value);
+						bool val = Compute(ref context, node.right, sb, model, boolMethods);
+						model.Set(context.txt[name], val);
 					}
 					break;
 				case ReturnType.String:
-					break;
-				case ReturnType.Variable:
+					{
+						Range val = Compute(ref context, node.right, sb, model, strMethods);
+						model.Set(context.txt[name], val.ToString());
+					}
 					break;
 				default:
-					Compute(ref context, node.left, sb, model);
-					break;
+					throw new Exception($"Assign does not support {rightType}");
 			}
 		}
 
@@ -119,6 +162,10 @@ namespace TemplateLanguage
 		{
 			ref readonly Node node = ref context.nodes[nodeIdx];
 			Compute(ref context, node.right, sb, model);
+		}
+
+		static void End(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		{
 		}
 
 		static float Float(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
@@ -168,6 +215,12 @@ namespace TemplateLanguage
 			return Compute(ref context, node.right, sb, model, numberMethods) / Compute(ref context, node.left, sb, model, numberMethods);
 		}
 
+		static Range Variable(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		{
+			ref readonly Node node = ref context.nodes[nodeIdx];
+			return Compute(ref context, node.right, sb, model, strMethods);
+		}
+
 		static float VariableNumber(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
 		{
 			ref readonly Node node = ref context.nodes[nodeIdx];
@@ -182,6 +235,9 @@ namespace TemplateLanguage
 
 			ReturnType rightType = GetType(ref context, node.right);
 			ReturnType leftType = GetType(ref context, node.left);
+
+			rightType &= ~ReturnType.Variable;
+			leftType &= ~ReturnType.Variable;
 
 			return (rightType, leftType) switch
 			{

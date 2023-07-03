@@ -76,7 +76,7 @@
 					// TODO: Bit dirty
 					ref readonly Node rightNode = ref nodes[rootNode.right];
 
-					returnTypes[root] = model.GetType(rightNode.token.GetSpan(txt));
+					returnTypes[root] = model.GetType(rightNode.token.GetSpan(txt)) | ReturnType.Variable;
 					break;
 				case NodeType.String:
 					returnTypes[root] = ReturnType.String;

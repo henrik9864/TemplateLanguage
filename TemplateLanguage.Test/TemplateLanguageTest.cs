@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Tokhenizer;
 
@@ -14,7 +15,7 @@ namespace TemplateLanguage.Test
 		public void Setup()
 		{
 			model = new TestModel();
-			model.Add("testVar", "6");
+			model.Set("testVar", 6);
 		}
 
 		[TestMethod]
@@ -108,21 +109,27 @@ namespace TemplateLanguage.Test
 
 		Dictionary<int, (string, ReturnType)> data = new();
 
-		public void Add(ReadOnlySpan<char> name, string var)
+		public void Set(ReadOnlySpan<char> name, string value)
 		{
-			data.Add(string.GetHashCode(name), (var, ReturnType.String));
+			Set(name, value, ReturnType.String);
 		}
 
-		public void Add(ReadOnlySpan<char> name, int var)
+		public void Set(ReadOnlySpan<char> name, float value)
 		{
-			data.Add(string.GetHashCode(name), (var.ToString(), ReturnType.Number));
+			Set(name, value.ToString(), ReturnType.Number);
 		}
 
-		public void Add(ReadOnlySpan<char> name, float var)
+		public void Set(ReadOnlySpan<char> name, int value)
 		{
-			data.Add(string.GetHashCode(name), (var.ToString(), ReturnType.Number));
+			Set(name, value.ToString(), ReturnType.Number);
 		}
 
+		public void Set(ReadOnlySpan<char> name, bool value)
+		{
+			Set(name, value.ToString(), ReturnType.Bool);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(ReadOnlySpan<char> name, string var, ReturnType type)
 		{
 			if (!data.TryAdd(string.GetHashCode(name), (var, type)))
@@ -131,7 +138,7 @@ namespace TemplateLanguage.Test
 
 		public ReturnType GetType(ReadOnlySpan<char> name)
 		{
-			throw new NotImplementedException();
+			return data[string.GetHashCode(name)].Item2;
 		}
 	}
 }

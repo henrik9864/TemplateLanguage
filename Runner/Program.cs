@@ -4,9 +4,9 @@ using TemplateLanguage;
 using Tokhenizer;
 
 var model = new TestModel();
-model.Add("testVar", "6");
-model.Add("testVar2", "23");
-model.Add("result", "taper");
+model.Set("testVar", 6);
+model.Set("testVar2", 23);
+model.Set("result", "taper");
 
 var str = File.ReadAllText("simpler.tcs").AsMemory();
 TemplateDebugger.Parse(str);
@@ -46,21 +46,27 @@ class TestModel : IModel
 
 	Dictionary<int, (string, ReturnType)> data = new();
 
-    public void Add(ReadOnlySpan<char> name, string var)
+	public void Set(ReadOnlySpan<char> name, string value)
     {
-        data.Add(string.GetHashCode(name), (var, ReturnType.String));
-    }
-
-	public void Add(ReadOnlySpan<char> name, int var)
-	{
-		data.Add(string.GetHashCode(name), (var.ToString(), ReturnType.Number));
+		Set(name, value, ReturnType.String);
 	}
 
-	public void Add(ReadOnlySpan<char> name, float var)
+	public void Set(ReadOnlySpan<char> name, float value)
 	{
-		data.Add(string.GetHashCode(name), (var.ToString(), ReturnType.Number));
+		Set(name, value.ToString(), ReturnType.Number);
 	}
 
+	public void Set(ReadOnlySpan<char> name, int value)
+	{
+		Set(name, value.ToString(), ReturnType.Number);
+	}
+
+	public void Set(ReadOnlySpan<char> name, bool value)
+	{
+		Set(name, value.ToString(), ReturnType.Bool);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Set(ReadOnlySpan<char> name, string var, ReturnType type)
 	{
 		if (!data.TryAdd(string.GetHashCode(name), (var, type)))
@@ -69,6 +75,6 @@ class TestModel : IModel
 
 	public ReturnType GetType(ReadOnlySpan<char> name)
 	{
-		return ReturnType.Number;
+		return data[string.GetHashCode(name)].Item2;
 	}
 }

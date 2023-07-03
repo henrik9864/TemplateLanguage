@@ -18,7 +18,25 @@ namespace TemplateLanguage
 
 		public void Add(TType type, TMask rightMask, TMask middleMask, TMask leftMask, TAction action)
 		{
-			maskBuff.Add((type, rightMask, middleMask, leftMask));
+            maskBuff.Add((type, rightMask, middleMask, leftMask));
+			methodBuff.Add(action);
+		}
+
+		public void Add(TType type, TMask rightMask, TMask leftMask, TAction action)
+		{
+			maskBuff.Add((type, rightMask, default, leftMask));
+			methodBuff.Add(action);
+		}
+
+		public void Add(TType type, TMask rightMask, TAction action)
+		{
+			maskBuff.Add((type, rightMask, default, default));
+			methodBuff.Add(action);
+		}
+
+		public void Add(TType type, TAction action)
+		{
+			maskBuff.Add((type, default, default, default));
 			methodBuff.Add(action);
 		}
 

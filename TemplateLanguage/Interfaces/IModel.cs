@@ -13,6 +13,14 @@ namespace TemplateLanguage
 
         void Set(ReadOnlySpan<char> name, string var, ReturnType type);
 
+        void Set(ReadOnlySpan<char> name, string value);
+
+        void Set(ReadOnlySpan<char> name, float value);
+
+        void Set(ReadOnlySpan<char> name, int value);
+
+        void Set(ReadOnlySpan<char> name, bool value);
+
 		ReturnType GetType(ReadOnlySpan<char> name);
 	}
 }

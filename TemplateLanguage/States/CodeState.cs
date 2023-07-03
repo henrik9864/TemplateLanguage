@@ -84,6 +84,10 @@ namespace TemplateLanguage
 			{
 				ast.InsertBool(token);
 			}
+			else if (token.Is(TokenType.String))
+			{
+				ast.InsertName(token);
+			}
 
 			return sm.Continue();
 		}
