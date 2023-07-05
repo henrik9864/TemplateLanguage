@@ -20,14 +20,14 @@ namespace TemplateLanguage
 			{ NodeType.Bracket, ReturnType.Any, Start },
 			{ NodeType.End, ReturnType.Any, End },
 
-			// ------ Text Block ------
+			// ------ Blocks ------
 			{ NodeType.TextBlock, ReturnType.Any, TextBlock },
-
-			// ------ Code Block ------
 			{ NodeType.CodeBlock, ReturnType.Any, ReturnType.Any, CodeBlock },
+			{ NodeType.VariableBlock, ReturnType.Any, ReturnType.Any, VariableBlock },
+			{ NodeType.NewLine, ReturnType.Any, ReturnType.Any, NewLine },
 
 			// ------ Operators ------
-			{ NodeType.If, ReturnType.Any, ReturnType.Any, ReturnType.Bool, If },
+			{ NodeType.If, ReturnType.Any, ReturnType.Any, ReturnType.Bool | ReturnType.Variable, If },
 			{ NodeType.Assign, ReturnType.Any, ReturnType.Any, Assign },
 		};
 
@@ -54,15 +54,21 @@ namespace TemplateLanguage
 
 			// ------ Operators ------
 			{ NodeType.Equals, ReturnType.Number | ReturnType.Bool | ReturnType.Variable, ReturnType.Number | ReturnType.Bool | ReturnType.Variable, Equals },
+
+			// ------ Variable ------
+			{ NodeType.Variable, ReturnType.String, VariableBool },
 		};
 
-		static MethodContainer<NodeType, ReturnType, TemplateMethod<Range>> strMethods = new()
+		static MethodContainer<NodeType, ReturnType, TemplateMethod<string>> strMethods = new()
 		{
 			// ------ String ------
 			{ NodeType.String, String },
 
 			// ------ Variable ------
 			{ NodeType.Variable, ReturnType.String, Variable },
+
+			// ------ Operators ------
+			{ NodeType.Add, ReturnType.String | ReturnType.Variable, ReturnType.String | ReturnType.Variable, Cat },
 		};
 
 		static TemplateLanguageRules()
@@ -95,7 +101,6 @@ namespace TemplateLanguage
 			ref readonly Node node = ref context.nodes[nodeIdx];
 			Compute(ref context, node.right, sb, model);
 
-
 			ReturnType type = GetType(ref context, node.left);
 			if (type.HasFlag(ReturnType.Number))
 			{
@@ -109,16 +114,45 @@ namespace TemplateLanguage
 			}
 			else if (type.HasFlag(ReturnType.String))
 			{
-
-			}
-			else if (type.HasFlag(ReturnType.Variable))
-			{
-
+				string value = Compute(ref context, node.left, sb, model, strMethods);
+				sb.Append(model[value]);
 			}
 			else
 			{
 				Compute(ref context, node.left, sb, model);
 			}
+		}
+
+		static void VariableBlock(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		{
+			ref readonly Node node = ref context.nodes[nodeIdx];
+
+			
+			Compute(ref context, node.right, sb, model);
+
+			var parameter = model[node.token.GetSpan(context.txt)];
+			switch (parameter.GetType())
+			{
+				case ReturnType.Number:
+					sb.Append(parameter.GetFloat());
+					break;
+				case ReturnType.Bool:
+					sb.Append(parameter.GetBool());
+					break;
+				case ReturnType.String:
+					sb.Append(parameter.GetString());
+					break;
+				default:
+					throw new Exception("Unsupported type");
+			}
+		}
+
+		static void NewLine(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		{
+			ref readonly Node node = ref context.nodes[nodeIdx];
+
+			ComputeAny(ref context, node.left, sb, model);
+			ComputeAny(ref context, node.right, sb, model);
 		}
 
 		static void Assign(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
@@ -131,31 +165,46 @@ namespace TemplateLanguage
 			if (!leftType.HasFlag(ReturnType.Variable))
 				throw new Exception($"Cannot assign to type {leftType}");
 
-			Range name = Compute(ref context, node.left, sb, model, strMethods);
+			string varName = Compute(ref context, node.left, sb, model, strMethods);
+
+			if (model.TryGet(varName, out IParameter parameter) && parameter.GetType() != rightType)
+				throw new Exception($"Cannot assign to type {rightType} to variable of type {parameter}");
 
 			switch (rightType)
 			{
 				case ReturnType.Number:
 					{
 						float val = Compute(ref context, node.right, sb, model, numberMethods);
-						model.Set(context.txt[name], val);
+						model.Set(varName, new Parameter<float>(val));
 					}
 					break;
 				case ReturnType.Bool:
 					{
 						bool val = Compute(ref context, node.right, sb, model, boolMethods);
-						model.Set(context.txt[name], val);
+						model.Set(varName, new Parameter<bool>(val));
 					}
 					break;
 				case ReturnType.String:
 					{
-						Range val = Compute(ref context, node.right, sb, model, strMethods);
-						model.Set(context.txt[name], val.ToString());
+						string val = Compute(ref context, node.right, sb, model, strMethods);
+						model.Set(varName, new Parameter<string>(val));
+					}
+					break;
+				case ReturnType.Variable:
+					{
+						string val = Compute(ref context, node.right, sb, model, strMethods);
+						model.Set(varName, model[val]);
 					}
 					break;
 				default:
 					throw new Exception($"Assign does not support {rightType}");
 			}
+		}
+
+		static string Cat(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		{
+			ref readonly Node node = ref context.nodes[nodeIdx];
+			return Compute(ref context, node.right, sb, model, strMethods) + Compute(ref context, node.left, sb, model, strMethods);
 		}
 
 		static void Start(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
@@ -186,9 +235,9 @@ namespace TemplateLanguage
 			return bool.Parse(node.token.GetSpan(context.txt));
 		}
 
-		static Range String(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static string String(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
 		{
-			return context.nodes[nodeIdx].token.range;
+			return context.nodes[nodeIdx].token.GetSpan(context.txt).ToString();
 		}
 
 		static float Add(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
@@ -215,7 +264,7 @@ namespace TemplateLanguage
 			return Compute(ref context, node.right, sb, model, numberMethods) / Compute(ref context, node.left, sb, model, numberMethods);
 		}
 
-		static Range Variable(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static string Variable(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
 		{
 			ref readonly Node node = ref context.nodes[nodeIdx];
 			return Compute(ref context, node.right, sb, model, strMethods);
@@ -224,9 +273,19 @@ namespace TemplateLanguage
 		static float VariableNumber(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
 		{
 			ref readonly Node node = ref context.nodes[nodeIdx];
-			Range range = Compute(ref context, node.right, sb, model, strMethods);
+			string varName = Compute(ref context, node.right, sb, model, strMethods);
 
-			return float.Parse(model[context.txt[range]], System.Globalization.CultureInfo.InvariantCulture);
+			//return float.Parse(model[varName], System.Globalization.CultureInfo.InvariantCulture);
+			return model[varName].GetFloat();
+		}
+
+		static bool VariableBool(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		{
+			ref readonly Node node = ref context.nodes[nodeIdx];
+			string varName = Compute(ref context, node.right, sb, model, strMethods);
+
+			//return bool.Parse(model[varName]);
+			return model[varName].GetBool();
 		}
 
 		static bool Equals(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
@@ -328,11 +387,11 @@ namespace TemplateLanguage
 		public ReadOnlySpan<ReturnType> returnTypes;
 	};
 
-	internal ref struct TemplateLanguageNew
+	internal ref struct TemplateLanguage
 	{
 		TemplateContext container;
 
-		public TemplateLanguageNew(ReadOnlySpan<char> txt, ReadOnlySpan<Node> nodes, ReadOnlySpan<ReturnType> returnTypes)
+		public TemplateLanguage(ReadOnlySpan<char> txt, ReadOnlySpan<Node> nodes, ReadOnlySpan<ReturnType> returnTypes)
 		{
 			this.container = new TemplateContext()
 			{
@@ -344,243 +403,5 @@ namespace TemplateLanguage
 
 		public void Compute(int root, StringBuilder sb, IModel model)
 			=> TemplateLanguageRules.Compute(ref container, root, sb, model);
-	}
-
-	internal ref struct TemplateLanguage
-	{
-		ReadOnlySpan<char> txt;
-		ReadOnlySpan<Node> nodes;
-		ReadOnlySpan<ReturnType> returnTypes;
-
-		public TemplateLanguage(ReadOnlySpan<char> txt, ReadOnlySpan<Node> nodes, ReadOnlySpan<ReturnType> returnTypes)
-		{
-			this.txt = txt;
-			this.nodes = nodes;
-			this.returnTypes = returnTypes;
-		}
-
-		public void Compute(int root, StringBuilder sb, IModel model)
-		{
-			if (root == -1)
-				return;
-
-            ref readonly Node rootNode = ref nodes[root];
-
-			switch (rootNode.nodeType)
-			{
-				case NodeType.Integer:
-					sb.Append(GetInt(rootNode.token.GetSpan(txt)));
-					break;
-				case NodeType.Float:
-					sb.Append(GetFloat(rootNode.token.GetSpan(txt)));
-					break;
-				case NodeType.Add:
-				case NodeType.Subtract:
-				case NodeType.Multiply:
-				case NodeType.Divide:
-					sb.Append(ComputeNumber(root, model));
-					break;
-				case NodeType.Bracket:
-					Compute(rootNode.right, sb, model);
-					break;
-				case NodeType.TextBlock:
-					Compute(rootNode.right, sb, model);
-                    sb.Append(rootNode.token.GetSpan(txt));
-					break;
-				case NodeType.CodeBlock:
-					Compute(rootNode.right, sb, model);
-					Compute(rootNode.left, sb, model);
-					break;
-				case NodeType.Variable:
-					{
-						ref readonly Node rightNode = ref nodes[rootNode.right];
-						sb.Append(model[rightNode.token.GetSpan(txt)]);
-						break;
-					}
-				case NodeType.If:
-					{
-						if (ComputeBool(rootNode.left, model))
-							Compute(rootNode.middle, sb, model);
-						else
-							Compute(rootNode.right, sb, model);
-
-						break;
-					}
-				case NodeType.Equals:
-					{
-						ReturnType type = returnTypes[rootNode.left];
-
-						switch (type)
-						{
-							case ReturnType.Number:
-								{
-									float leftNode = ComputeNumber(rootNode.left, model);
-									float rightNode = ComputeNumber(rootNode.right, model);
-
-									sb.Append(leftNode == rightNode);
-								}
-								break;
-							case ReturnType.Bool:
-								{
-									bool leftNode = ComputeBool(rootNode.left, model);
-									bool rightNode = ComputeBool(rootNode.right, model);
-
-									sb.Append(leftNode == rightNode);
-								}
-								break;
-							default:
-								throw new Exception($"Equals does not support type {type}");
-						}
-						break;
-					}
-				case NodeType.Assign:
-					{
-                        float rightNode = ComputeNumber(rootNode.right, model);
-						ref readonly Node variableNode = ref nodes[ComputeVariable(rootNode.left)];
-						ref readonly Node nameNode = ref nodes[variableNode.right];
-
-                        model.Set(nameNode.token.GetSpan(txt), rightNode.ToString(), ReturnType.Number);
-						break;
-					}
-				case NodeType.Start:
-					Compute(rootNode.right, sb, model);
-					break;
-				case NodeType.End:
-					break;
-				default:
-					throw new Exception("WTF!");
-			}
-		}
-
-		float ComputeNumber(int root, IModel model)
-		{
-            ref readonly Node rootNode = ref nodes[root];
-
-			switch (rootNode.nodeType)
-			{
-				case NodeType.Add:
-					{
-						float leftNode = ComputeNumber(rootNode.left, model);
-						float rightNode = ComputeNumber(rootNode.right, model);
-						return leftNode + rightNode;
-					}
-				case NodeType.Subtract:
-					{
-						float leftNode = ComputeNumber(rootNode.left, model);
-						float rightNode = ComputeNumber(rootNode.right, model);
-                    return leftNode - rightNode;
-					}
-				case NodeType.Multiply:
-					{
-						float leftNode = ComputeNumber(rootNode.left, model);
-						float rightNode = ComputeNumber(rootNode.right, model);
-						return leftNode * rightNode;
-					}
-				case NodeType.Divide:
-					{
-					float leftNode = ComputeNumber(rootNode.left, model);
-					float rightNode = ComputeNumber(rootNode.right, model);
-                    return leftNode / rightNode;
-					}
-				case NodeType.Integer:
-					return GetInt(rootNode.token.GetSpan(txt));
-				case NodeType.Float:
-					return GetFloat(rootNode.token.GetSpan(txt));
-				case NodeType.Variable:
-					{
-						ref readonly Node rightNode = ref nodes[rootNode.right];
-						return GetFloat(model[rightNode.token.GetSpan(txt)]);
-					}
-				case NodeType.Bracket:
-					return ComputeNumber(rootNode.right, model);
-				default:
-					throw new Exception("WTF!");
-			}
-		}
-
-		bool ComputeBool(int root, IModel model)
-		{
-			ref readonly Node rootNode = ref nodes[root];
-
-			switch (rootNode.nodeType)
-			{
-				case NodeType.Bool:
-					{
-						return GetBool(rootNode.token.GetSpan(txt));
-					}
-				case NodeType.Variable:
-					{
-						ref readonly Node rightNode = ref nodes[rootNode.right];
-						return GetBool(model[rightNode.token.GetSpan(txt)]);
-					}
-				case NodeType.Equals:
-					{
-						ReturnType type = returnTypes[rootNode.left];
-
-						switch (type)
-						{
-							case ReturnType.Number:
-								{
-									float leftNode = ComputeNumber(rootNode.left, model);
-									float rightNode = ComputeNumber(rootNode.right, model);
-
-									return leftNode == rightNode;
-								}
-							case ReturnType.Bool:
-								{
-									bool leftNode = ComputeBool(rootNode.left, model);
-									bool rightNode = ComputeBool(rootNode.right, model);
-
-									return leftNode == rightNode;
-								}
-							default:
-								throw new Exception($"Equals does not support type {type}");
-						}
-					}
-				case NodeType.Bracket:
-					{
-						return ComputeBool(rootNode.right, model);
-					}
-				default:
-					throw new Exception("WTF!");
-			}
-		}
-
-		int ComputeVariable(int root)
-		{
-			ref readonly Node rootNode = ref nodes[root];
-
-			switch (rootNode.nodeType)
-			{
-				case NodeType.Bracket:
-					{
-						return ComputeVariable(rootNode.right);
-					}
-				case NodeType.Variable:
-					{
-						return root;
-					}
-				default:
-					throw new Exception("WTF!");
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static float GetInt(ReadOnlySpan<char> txt)
-		{
-			return int.Parse(txt, System.Globalization.CultureInfo.InvariantCulture);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static float GetFloat(ReadOnlySpan<char> txt)
-		{
-			return float.Parse(txt, System.Globalization.CultureInfo.InvariantCulture);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static bool GetBool(ReadOnlySpan<char> txt)
-		{
-			return bool.Parse(txt);
-		}
 	}
 }

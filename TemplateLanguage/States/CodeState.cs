@@ -8,8 +8,9 @@ namespace TemplateLanguage
 		{
             if (
 				token.Is(TokenType.Bracket, BracketType.Code) ||
-				token.Is(TokenType.Bracket, BracketType.Operator) ||
+				token.Is(TokenType.Operator, OperatorType.Then) ||
 				token.Is(TokenType.Operator, OperatorType.Else) ||
+				token.Is(TokenType.Operator, OperatorType.Elseif) ||
 				token.Is(TokenType.Operator, OperatorType.End))
 			{
 				ast.InsertEnd();
@@ -39,17 +40,30 @@ namespace TemplateLanguage
 						ast.InsertOperator(NodeType.Equals);
 						break;
 					case OperatorType.If:
-						var ifIdx = ast.InsertIf();
+						int ifIdx = 0;
 
-						ast.BracketOpen();
-						sm.Transition(EngineState.Code, ref ast, repeatToken: false);
-						ast.BracketClose();
+						do
+						{
+							// If token is elseif it means there is a previous if statement
+							if (token.Is(TokenType.Operator, OperatorType.Elseif))
+								ast.SetRight(ifIdx);
 
-						ast.SetMiddle(ifIdx);
+							ifIdx = ast.InsertIf();
 
-						ast.BracketOpen();
-						sm.Transition(EngineState.Code, ref ast, repeatToken: false);
-						ast.BracketClose();
+							ast.BracketOpen();
+							sm.Transition(EngineState.Code, ref ast, repeatToken: false);
+							ast.BracketClose();
+
+							if (!token.Is(TokenType.Operator, OperatorType.Then))
+								throw new Exception("If condition must be closed by then");
+
+							ast.SetMiddle(ifIdx);
+
+							ast.BracketOpen();
+							sm.Transition(EngineState.Code, ref ast, repeatToken: false);
+							ast.BracketClose();
+						}
+						while (token.Is(TokenType.Operator, OperatorType.Elseif));
 
 						if (token.Is(TokenType.Operator, OperatorType.Else))
 						{
@@ -60,19 +74,17 @@ namespace TemplateLanguage
 							ast.BracketClose();
 						}
 
-						if (token.Is(TokenType.Operator, OperatorType.End))
-						{
-							return sm.Continue();
-						}
+						if (!token.Is(TokenType.Operator, OperatorType.End))
+							throw new Exception("If statement must be closed with end.");
 
-						return OnStep(ref sm, ref ast, ref token);
+						return sm.Continue();
 					default:
 						break;
 				}
 			}
 			else if (token.Is(TokenType.NewLine))
 			{
-                ast.InsertOperator(NodeType.CodeBlock);
+                ast.InsertOperator(NodeType.NewLine);
 
 				ast.BracketOpen();
 				sm.Transition(EngineState.Code, ref ast, repeatToken: false);

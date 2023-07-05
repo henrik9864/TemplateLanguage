@@ -15,6 +15,7 @@ namespace TemplateLanguage
 
 		TextBlock,
 		CodeBlock,
+		VariableBlock,
 		Bracket,
 
 		Integer,

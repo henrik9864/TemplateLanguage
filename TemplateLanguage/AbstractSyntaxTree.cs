@@ -42,6 +42,17 @@ namespace TemplateLanguage
 			currIdx++;
 		}
 
+		public void InsertVariable(in Token token)
+		{
+			int rootIdx = currRoot.Peek();
+			ref Node rootNode = ref nodeTree[rootIdx];
+
+			Node.Create(ref nodeTree[currIdx], NodeType.VariableBlock, token: token, right: rootNode.right);
+			rootNode.right = currIdx;
+
+			currIdx++;
+		}
+
 		public void StartCodeBlock()
 		{
 			int rootIdx = currRoot.Peek();

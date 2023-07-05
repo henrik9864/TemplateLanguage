@@ -15,8 +15,9 @@
         Divide,
 
         If,
+        Then,
         Else,
-        Elif,
+        Elseif,
         End,
     }
 }

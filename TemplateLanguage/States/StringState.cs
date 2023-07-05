@@ -14,6 +14,11 @@ namespace TemplateLanguage
 				sm.Transition(EngineState.Code, ref ast);
 				ast.BracketClose();
             }
+			else if(token.Get<TokenType>(0) == TokenType.Operator && token.Get<OperatorType>(1) == OperatorType.Variable)
+			{
+				sm.Consume();
+				ast.InsertVariable(token);
+			}
 			else
 			{
 				ast.InsertString(token);

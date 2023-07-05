@@ -14,21 +14,21 @@
 
 	internal static class TemplateLanguageTypeResolver
 	{
-		public static void ResolveTypes(int root, ReadOnlySpan<Node> nodes, Span<ReturnType> returnTypes, ReadOnlySpan<char> txt, IModel model)
+		public static void ResolveTypes(int root, ReadOnlySpan<Node> nodes, Span<ReturnType> returnTypes)
 		{
-			ComputeReturnTypes(root, nodes, returnTypes, txt, model);
+			ComputeReturnTypes(root, nodes, returnTypes);
 		}
 
-		static ReturnType ComputeReturnTypes(int root, ReadOnlySpan<Node> nodes, Span<ReturnType> returnTypes, ReadOnlySpan<char> txt, IModel model)
+		static ReturnType ComputeReturnTypes(int root, ReadOnlySpan<Node> nodes, Span<ReturnType> returnTypes)
 		{
 			if (root == -1)
 				return ReturnType.None;
 
 			ref readonly Node rootNode = ref nodes[root];
 
-            var rightType = ComputeReturnTypes(rootNode.right, nodes, returnTypes, txt, model);
-			var middleType = ComputeReturnTypes(rootNode.middle, nodes, returnTypes, txt, model);
-			var leftType = ComputeReturnTypes(rootNode.left, nodes, returnTypes, txt, model);
+            var rightType = ComputeReturnTypes(rootNode.right, nodes, returnTypes);
+			var middleType = ComputeReturnTypes(rootNode.middle, nodes, returnTypes);
+			var leftType = ComputeReturnTypes(rootNode.left, nodes, returnTypes);
 
 			switch (rootNode.nodeType)
 			{
@@ -45,6 +45,9 @@
 					returnTypes[root] = ReturnType.None;
 					break;
 				case NodeType.CodeBlock:
+					returnTypes[root] = ReturnType.None;
+					break;
+				case NodeType.VariableBlock:
 					returnTypes[root] = ReturnType.None;
 					break;
 				case NodeType.Bracket:
@@ -73,10 +76,7 @@
 					returnTypes[root] = ReturnType.None;
 					break;
 				case NodeType.Variable:
-					// TODO: Bit dirty
-					ref readonly Node rightNode = ref nodes[rootNode.right];
-
-					returnTypes[root] = model.GetType(rightNode.token.GetSpan(txt)) | ReturnType.Variable;
+					returnTypes[root] = ReturnType.Variable;
 					break;
 				case NodeType.String:
 					returnTypes[root] = ReturnType.String;

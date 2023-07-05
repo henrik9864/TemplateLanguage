@@ -22,9 +22,6 @@ namespace Tokhenizer
             if (lexer.Current == '|')
                 return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.Code);
 
-			if (lexer.Current == ':')
-				return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.Operator);
-
 			if (lexer.Current == '"')
                 return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.String);
 
@@ -60,14 +57,17 @@ namespace Tokhenizer
 			if (lexer.Current == '>')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Greater);
 
+			if (lexer.IsString("elseif"))
+				return lexer.ConsumeAndCreateToken(6, out token, TokenType.Operator, OperatorType.Elseif);
+
 			if (lexer.IsString("if"))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.If);
 
+			if (lexer.IsString("then"))
+				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Operator, OperatorType.Then);
+
 			if (lexer.IsString("else"))
 				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Operator, OperatorType.Else);
-
-			if (lexer.IsString("elif"))
-				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Operator, OperatorType.Elif);
 
 			if (lexer.IsString("end"))
 				return lexer.ConsumeAndCreateToken(3, out token, TokenType.Operator, OperatorType.End);

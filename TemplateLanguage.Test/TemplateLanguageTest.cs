@@ -9,13 +9,15 @@ namespace TemplateLanguage.Test
 	public class TemplateLanguageTest
 	{
 		TemplateRules templateRules = new TemplateRules();
-		TestModel model;
+		ModelNew model;
 
 		[TestInitialize]
 		public void Setup()
 		{
-			model = new TestModel();
-			model.Set("testVar", 6);
+			model = new ModelNew();
+			model.Set("testVar", new Parameter<float>(6));
+			model.Set("testVar2", new Parameter<string>("slfgh"));
+			model.Set("testVar3", new Parameter<bool>(false));
 		}
 
 		[TestMethod]
@@ -23,17 +25,18 @@ namespace TemplateLanguage.Test
 		{
 			Assert.AreEqual("", RunLanguage("||", model));
 			Assert.AreEqual("2+3", RunLanguage("2+3", model));
-			Assert.AreEqual("if true:1", RunLanguage("if true:1", model));
+			Assert.AreEqual("if true then 1 end", RunLanguage("if true then 1 end", model));
 			Assert.AreEqual("lmao 19.5123", RunLanguage("lmao |3*(4+2.5)|123", model));
-			Assert.AreEqual("()*/+ 3123", RunLanguage("()*/+ |if 3*(4+2.5)==3*(4+2.5):1+2|123", model));
+			Assert.AreEqual("()*/+ 3123", RunLanguage("()*/+ |if 3*(4+2.5)==3*(4+2.5) then 1+2 end|123", model));
 		}
 
 		[TestMethod]
 		public void TestNewLine()
 		{
+			Assert.AreEqual("2", RunLanguage("|2|", model));
 			Assert.AreEqual("", RunLanguage("|\n|", model));
-			Assert.AreEqual("2", RunLanguage("|\n\n2\n\n|", model));
-			Assert.AreEqual("tes\n2g", RunLanguage("tes\n|\n\n2\n\n|g", model));
+			Assert.AreEqual("", RunLanguage("|\n\n2\n\n|", model));
+			Assert.AreEqual("tes\ng", RunLanguage("tes\n|\n\n2\n\n|g", model));
 		}
 
 		[TestMethod]
@@ -62,20 +65,23 @@ namespace TemplateLanguage.Test
 		[TestMethod]
 		public void TestIf()
 		{
-			Assert.AreEqual("1", RunLanguage("|if true:1else2|", model));
-			Assert.AreEqual("2", RunLanguage("|if false:1else2|", model));
-			Assert.AreEqual("3", RunLanguage("|if 2==2:1+2|", model));
-			Assert.AreEqual("", RunLanguage("|if 3==2:1+2|", model));
-			Assert.AreEqual("3", RunLanguage("|if 3*(4+2.5)==19.5:1+2|", model));
-			Assert.AreEqual("3", RunLanguage("|if 3*(4+2.5)==3*(4+2.5):1+2else3*(4+2.5)|", model));
-			Assert.AreEqual("19.5", RunLanguage("|if 3*(4+2.5)==3*(4+2.5)+5:1+2else3*(4+2.5)|", model));
+			Assert.AreEqual("1", RunLanguage("|if true then 1 else 2 end|", model));
+			Assert.AreEqual("2", RunLanguage("|if false then 1 else 2 end|", model));
+			Assert.AreEqual("3", RunLanguage("|if 2==2 then 1+2 end|", model));
+			Assert.AreEqual("", RunLanguage("|if 3==2 then 1+2 end|", model));
+			Assert.AreEqual("3", RunLanguage("|if 3*(4+2.5)==19.5 then 1+2 end|", model));
+			Assert.AreEqual("3", RunLanguage("|if 3*(4+2.5)==3*(4+2.5) then 1+2else3*(4+2.5) end|", model));
+			Assert.AreEqual("19.5", RunLanguage("|if 3*(4+2.5)==3*(4+2.5)+5 then 1+2else3*(4+2.5) end|", model));
+			Assert.AreEqual("4", RunLanguage("|if true then \r\n\t$testVar=3\r\n\t$testVar=4\r\nend\r\n||$testVar|", model));
 		}
 
 		[TestMethod]
 		public void TestVariable()
 		{
 			Assert.AreEqual("6", RunLanguage("|$testVar|", model));
-			Assert.AreEqual("1", RunLanguage("|if $testVar==6:1|", model));
+			Assert.AreEqual("slfgh", RunLanguage("|$testVar2|", model));
+			Assert.AreEqual("False", RunLanguage("|$testVar3|", model));
+			Assert.AreEqual("1", RunLanguage("|if $testVar==6 then 1 end|", model));
 			Assert.AreEqual("30", RunLanguage("|3*(4+$testVar)|", model));
 		}
 
@@ -94,51 +100,6 @@ namespace TemplateLanguage.Test
 			template.RenderTo(sb, model);
 
 			return sb.ToString();
-		}
-	}
-
-	class TestModel : IModel
-	{
-		public ReadOnlySpan<char> this[ReadOnlySpan<char> name]
-		{
-			get
-			{
-				return data[string.GetHashCode(name)].Item1;
-			}
-		}
-
-		Dictionary<int, (string, ReturnType)> data = new();
-
-		public void Set(ReadOnlySpan<char> name, string value)
-		{
-			Set(name, value, ReturnType.String);
-		}
-
-		public void Set(ReadOnlySpan<char> name, float value)
-		{
-			Set(name, value.ToString(), ReturnType.Number);
-		}
-
-		public void Set(ReadOnlySpan<char> name, int value)
-		{
-			Set(name, value.ToString(), ReturnType.Number);
-		}
-
-		public void Set(ReadOnlySpan<char> name, bool value)
-		{
-			Set(name, value.ToString(), ReturnType.Bool);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(ReadOnlySpan<char> name, string var, ReturnType type)
-		{
-			if (!data.TryAdd(string.GetHashCode(name), (var, type)))
-				data[string.GetHashCode(name)] = (var, type);
-		}
-
-		public ReturnType GetType(ReadOnlySpan<char> name)
-		{
-			return data[string.GetHashCode(name)].Item2;
 		}
 	}
 }

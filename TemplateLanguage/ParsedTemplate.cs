@@ -76,15 +76,13 @@ namespace TemplateLanguage
             Span<Node> nodeTree = ast.GetTree();
 			Span<ReturnType> returnTypes = stackalloc ReturnType[nodeTree.Length];
 
-            TemplateLanguageTypeResolver.ResolveTypes(ast.GetRoot(), nodeTree, returnTypes, txt, model);
+            TemplateLanguageTypeResolver.ResolveTypes(ast.GetRoot(), nodeTree, returnTypes);
 
-			ast.PrintTree(txt, returnTypes, false);
+			ast.PrintTree(txt, returnTypes, true);
 
             var language = new TemplateLanguage(txt, nodeTree, returnTypes);
-            var languageNew = new TemplateLanguageNew(txt, nodeTree, returnTypes);
 
-			//language.Compute(ast.GetRoot(), sb, model);
-			languageNew.Compute(ast.GetRoot(), sb, model);
+			language.Compute(ast.GetRoot(), sb, model);
 		}
 
         internal void Transition(EngineState newState, ref AbstractSyntaxTree ast, bool repeatToken = false)
