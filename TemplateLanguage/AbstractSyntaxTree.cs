@@ -73,14 +73,19 @@ namespace TemplateLanguage
 			return currIdx - 1;
 		}
 
-		public void SetMiddle(int ifIdx)
+		public void SetMiddle(int idx)
 		{
-			nodeTree[ifIdx].middle = currIdx;
+			nodeTree[idx].middle = currIdx;
 		}
 
-		public void SetRight(int ifIdx)
+		public void SetRight(int idx)
 		{
-			nodeTree[ifIdx].right = currIdx;
+			nodeTree[idx].right = currIdx;
+		}
+
+		public void SetLeft(int idx)
+		{
+			nodeTree[idx].left = currIdx;
 		}
 
 		public void InsertBool(in Token token)

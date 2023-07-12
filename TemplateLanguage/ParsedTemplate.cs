@@ -42,32 +42,25 @@ namespace TemplateLanguage
             var ast = new AbstractSyntaxTree(nodeArr);
 
             ast.InsertStart();
-            CalculateAst(EngineState.String, ref ast, false);
+            CalculateAst(EngineState.String, ref ast);
 
 			ComputeAst(sb, ref ast, model);
 
 			ArrayPool<Node>.Shared.Return(nodeArr);
 		}
 
-		ExitCode CalculateAst(EngineState engineState, ref AbstractSyntaxTree ast, bool repeatToken)
+		void CalculateAst(EngineState engineState, ref AbstractSyntaxTree ast)
         {
 			ref Token token = ref enumerator.Current;
-
-			if (repeatToken)
-			{
-				var code = stateDict[engineState].OnStep(ref this, ref ast, ref token);
-				if (code == ExitCode.Exit)
-					return ExitCode.Continue;
-			}
 
 			while (true)
             {
                 if (!enumerator.MoveNext())
-                    return ExitCode.Exit;
+                    return;
 
                 var code = stateDict[engineState].OnStep(ref this, ref ast, ref token);
 				if (code == ExitCode.Exit)
-					return ExitCode.Continue;
+					return;
 			}
 		}
 
@@ -87,7 +80,16 @@ namespace TemplateLanguage
 
         internal void Transition(EngineState newState, ref AbstractSyntaxTree ast, bool repeatToken = false)
         {
-            CalculateAst(newState, ref ast, repeatToken);
+			ref Token token = ref enumerator.Current;
+
+			if (repeatToken)
+			{
+				var code = stateDict[newState].OnStep(ref this, ref ast, ref token);
+				if (code == ExitCode.Exit)
+					return;
+			}
+
+			CalculateAst(newState, ref ast);
 		}
 
         internal ref Token Consume()

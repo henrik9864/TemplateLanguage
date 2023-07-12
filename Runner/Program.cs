@@ -22,6 +22,7 @@ Console.WriteLine();
 Console.WriteLine();
 Console.WriteLine("------- Model -------");
 
+Console.WriteLine($"a = 2");
 Console.WriteLine($"testVar = 6");
 Console.WriteLine($"testVar2 = 23");
 Console.WriteLine($"testVar3 = false");

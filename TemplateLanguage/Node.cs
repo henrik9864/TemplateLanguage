@@ -34,7 +34,6 @@ namespace TemplateLanguage
 		If,
 		Else,
 		Equals,
-		Compare,
 	}
 
 	struct Node

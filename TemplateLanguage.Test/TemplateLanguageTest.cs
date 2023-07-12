@@ -18,6 +18,7 @@ namespace TemplateLanguage.Test
 			model.Set("testVar", new Parameter<float>(6));
 			model.Set("testVar2", new Parameter<string>("slfgh"));
 			model.Set("testVar3", new Parameter<bool>(false));
+			model.Set("testVar4", new Parameter<float>(7));
 		}
 
 		[TestMethod]
@@ -60,6 +61,9 @@ namespace TemplateLanguage.Test
 			Assert.AreEqual("False", RunLanguage("|3==2|", model));
 			Assert.AreEqual("False", RunLanguage("|3*(4+2.5)==2|", model));
 			Assert.AreEqual("True", RunLanguage("|3*(4+2.5)==3*(4+2.5)|", model));
+			Assert.AreEqual("True", RunLanguage("|$testVar3==false|", model));
+			Assert.AreEqual("False", RunLanguage("|true==$testVar3|", model));
+			Assert.AreEqual("True", RunLanguage("|$testVar3==$testVar3|", model));
 		}
 
 		[TestMethod]
@@ -82,14 +86,20 @@ namespace TemplateLanguage.Test
 			Assert.AreEqual("slfgh", RunLanguage("|$testVar2|", model));
 			Assert.AreEqual("False", RunLanguage("|$testVar3|", model));
 			Assert.AreEqual("1", RunLanguage("|if $testVar==6 then 1 end|", model));
+			Assert.AreEqual("1", RunLanguage("|if 6==$testVar then 1 end|", model));
 			Assert.AreEqual("30", RunLanguage("|3*(4+$testVar)|", model));
+			Assert.AreEqual("30", RunLanguage("|3*($testVar+4)|", model));
+			Assert.AreEqual("36", RunLanguage("|3*($testVar+$testVar)|", model));
 		}
 
 		[TestMethod]
 		public void TestAssign()
 		{
+			Assert.AreEqual("1", RunLanguage("|$a=1|$a", model));
 			Assert.AreEqual("", RunLanguage("|$testVar=6|", model));
-			Assert.AreEqual("65", RunLanguage("|$testVar||$testVar=5||$testVar|", model));
+			Assert.AreEqual("7", RunLanguage("|$testVar=$testVar4|$testVar", model));
+			Assert.AreEqual("75", RunLanguage("$testVar|$testVar=5|$testVar", model));
+			Assert.AreEqual("56", RunLanguage("|$testVar||$testVar=6||$testVar|", model));
 		}
 
 		public string RunLanguage(ReadOnlySpan<char> txt, IModel model)

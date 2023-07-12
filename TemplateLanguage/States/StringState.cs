@@ -18,6 +18,13 @@ namespace TemplateLanguage
 			{
 				sm.Consume();
 				ast.InsertVariable(token);
+
+				/*
+				while (token.Is(TokenType.Bracket,BracketType.AccessorOpen))
+				{
+
+				}
+				*/
 			}
 			else
 			{

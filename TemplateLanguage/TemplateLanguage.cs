@@ -65,10 +65,19 @@ namespace TemplateLanguage
 			{ NodeType.String, String },
 
 			// ------ Variable ------
-			{ NodeType.Variable, ReturnType.String, Variable },
+			{ NodeType.Variable, ReturnType.String, VariableString },
 
 			// ------ Operators ------
 			{ NodeType.Add, ReturnType.String | ReturnType.Variable, ReturnType.String | ReturnType.Variable, Cat },
+		};
+
+		static MethodContainer<NodeType, ReturnType, TemplateMethod<string>> varNameMethods = new()
+		{
+			// ------ String ------
+			{ NodeType.String, String },
+
+			// ------ Variable ------
+			{ NodeType.Variable, ReturnType.String, VariableName },
 		};
 
 		static TemplateLanguageRules()
@@ -77,6 +86,7 @@ namespace TemplateLanguage
 			numberMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(numberMethods));
 			boolMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(boolMethods));
 			strMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(strMethods));
+			varNameMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(varNameMethods));
 		}
 
 		public static void Compute(ref TemplateContext context, int node, StringBuilder sb, IModel model)
@@ -99,35 +109,14 @@ namespace TemplateLanguage
 		static void CodeBlock(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
 		{
 			ref readonly Node node = ref context.nodes[nodeIdx];
-			Compute(ref context, node.right, sb, model);
 
-			ReturnType type = GetType(ref context, node.left);
-			if (type.HasFlag(ReturnType.Number))
-			{
-				float value = Compute(ref context, node.left, sb, model, numberMethods);
-				sb.Append(value);
-			}
-			else if (type.HasFlag(ReturnType.Bool))
-			{
-				bool value = Compute(ref context, node.left, sb, model, boolMethods);
-				sb.Append(value);
-			}
-			else if (type.HasFlag(ReturnType.String))
-			{
-				string value = Compute(ref context, node.left, sb, model, strMethods);
-				sb.Append(model[value]);
-			}
-			else
-			{
-				Compute(ref context, node.left, sb, model);
-			}
+			Compute(ref context, node.right, sb, model);
+			ComputeAny(ref context, node.left, sb, model, appendResult: true);
 		}
 
 		static void VariableBlock(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
 		{
 			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			
 			Compute(ref context, node.right, sb, model);
 
 			var parameter = model[node.token.GetSpan(context.txt)];
@@ -162,10 +151,13 @@ namespace TemplateLanguage
 			ReturnType rightType = GetType(ref context, node.right);
 			ReturnType leftType = GetType(ref context, node.left);
 
+			if (rightType.HasFlag(ReturnType.Variable))
+				rightType = model[Compute(ref context, node.right, sb, model, varNameMethods)].GetType();
+
 			if (!leftType.HasFlag(ReturnType.Variable))
 				throw new Exception($"Cannot assign to type {leftType}");
 
-			string varName = Compute(ref context, node.left, sb, model, strMethods);
+			string varName = Compute(ref context, node.left, sb, model, varNameMethods);
 
 			if (model.TryGet(varName, out IParameter parameter) && parameter.GetType() != rightType)
 				throw new Exception($"Cannot assign to type {rightType} to variable of type {parameter}");
@@ -192,7 +184,7 @@ namespace TemplateLanguage
 					break;
 				case ReturnType.Variable:
 					{
-						string val = Compute(ref context, node.right, sb, model, strMethods);
+						string val = Compute(ref context, node.right, sb, model, varNameMethods);
 						model.Set(varName, model[val]);
 					}
 					break;
@@ -264,10 +256,18 @@ namespace TemplateLanguage
 			return Compute(ref context, node.right, sb, model, numberMethods) / Compute(ref context, node.left, sb, model, numberMethods);
 		}
 
-		static string Variable(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static string VariableName(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
 		{
 			ref readonly Node node = ref context.nodes[nodeIdx];
 			return Compute(ref context, node.right, sb, model, strMethods);
+		}
+
+		static string VariableString(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		{
+			ref readonly Node node = ref context.nodes[nodeIdx];
+			string varName = Compute(ref context, node.right, sb, model, strMethods);
+
+			return model[varName].GetString();
 		}
 
 		static float VariableNumber(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
@@ -275,7 +275,6 @@ namespace TemplateLanguage
 			ref readonly Node node = ref context.nodes[nodeIdx];
 			string varName = Compute(ref context, node.right, sb, model, strMethods);
 
-			//return float.Parse(model[varName], System.Globalization.CultureInfo.InvariantCulture);
 			return model[varName].GetFloat();
 		}
 
@@ -284,7 +283,6 @@ namespace TemplateLanguage
 			ref readonly Node node = ref context.nodes[nodeIdx];
 			string varName = Compute(ref context, node.right, sb, model, strMethods);
 
-			//return bool.Parse(model[varName]);
 			return model[varName].GetBool();
 		}
 
@@ -295,8 +293,15 @@ namespace TemplateLanguage
 			ReturnType rightType = GetType(ref context, node.right);
 			ReturnType leftType = GetType(ref context, node.left);
 
-			rightType &= ~ReturnType.Variable;
-			leftType &= ~ReturnType.Variable;
+			if (rightType.HasFlag(ReturnType.Variable))
+			{
+				rightType = model[Compute(ref context, node.right, sb, model, varNameMethods)].GetType();
+			}
+
+			if (leftType.HasFlag(ReturnType.Variable))
+			{
+				leftType = model[Compute(ref context, node.left, sb, model, varNameMethods)].GetType();
+			}
 
 			return (rightType, leftType) switch
 			{
@@ -328,6 +333,13 @@ namespace TemplateLanguage
 		public static void ComputeAny(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, bool appendResult = false)
 		{
 			ReturnType type = GetType(ref context, nodeIdx);
+
+			if (type.HasFlag(ReturnType.Variable))
+			{
+				ref readonly Node node = ref context.nodes[nodeIdx];
+				type = model[Compute(ref context, node.right, sb, model, varNameMethods)].GetType();
+			}
+
 			switch (type)
 			{
 				case ReturnType.Number:
@@ -347,8 +359,12 @@ namespace TemplateLanguage
 					}
 					break;
 				case ReturnType.String:
-					break;
-				case ReturnType.Variable:
+					{
+						string value = Compute(ref context, nodeIdx, sb, model, strMethods);
+
+						if (appendResult)
+							sb.Append(value);
+					}
 					break;
 				default:
 					Compute(ref context, nodeIdx, sb, model);

@@ -66,8 +66,7 @@
 				case NodeType.Subtract:
 				case NodeType.Multiply:
 				case NodeType.Divide:
-				case NodeType.Compare:
-					returnTypes[root] = rightType;
+					returnTypes[root] = ReturnType.Number;
 					break;
 				case NodeType.Equals:
 					returnTypes[root] = ReturnType.Bool;

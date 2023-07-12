@@ -1,13 +1,1 @@
-﻿|
-$k=false
-if $k then
-	$testVar=3
-elseif true then
-	$testVar=4
-else
-	$testVar=0
-end
-|$testVar
-$k
-$result
-$vari->shaba
+﻿|3*(4+$testVar)|
