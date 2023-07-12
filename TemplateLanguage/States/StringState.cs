@@ -13,18 +13,27 @@ namespace TemplateLanguage
 				ast.BracketOpen();
 				sm.Transition(EngineState.Code, ref ast);
 				ast.BracketClose();
-            }
-			else if(token.Get<TokenType>(0) == TokenType.Operator && token.Get<OperatorType>(1) == OperatorType.Variable)
+			}
+			else if (token.Get<TokenType>(0) == TokenType.Operator && token.Get<OperatorType>(1) == OperatorType.Variable)
 			{
-				sm.Consume();
-				ast.InsertVariable(token);
+				ast.StartCodeBlock();
+				ast.BracketOpen();
+
+				ast.InsertName(sm.Consume());
+				ast.InsertVariable();
 
 				/*
-				while (token.Is(TokenType.Bracket,BracketType.AccessorOpen))
+				sm.Consume();
+				while (token.Is(TokenType.Bracket, BracketType.AccessorOpen))
 				{
+					ast.InsertOperator(NodeType.Accessor);
+					sm.Consume();
 
+					ast.InsertName(token);
 				}
 				*/
+
+				ast.BracketClose();
 			}
 			else
 			{

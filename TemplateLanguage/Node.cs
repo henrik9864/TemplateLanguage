@@ -28,6 +28,8 @@ namespace TemplateLanguage
 		Divide,
 
 		Assign,
+		Accessor,
+
 		Variable,
 		String,
 

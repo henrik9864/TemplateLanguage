@@ -26,68 +26,27 @@ namespace TemplateLanguage
 			return types[typeof(T)];
 		}
 
-		public bool GetBool()
+		public bool TryGet<T1>(out T1 value)
 		{
-			if (typeof(T) != typeof(bool))
-				throw new NotImplementedException();
+			if (typeof(T) != typeof(T1))
+			{
+				value = default;
+				return false;
+			}
 
-			return Unsafe.As<T, bool>(ref value);
+			value = Unsafe.As<T, T1>(ref this.value);
+			return true;
 		}
 
-		public float GetFloat()
+		public bool TrySet<T1>(T1 value)
 		{
-			if (typeof(T) != typeof(float))
-				throw new NotImplementedException();
+			if (typeof(T) != typeof(T1))
+			{
+				return false;
+			}
 
-			return Unsafe.As<T, float>(ref value);
-		}
-
-		public int GetInt()
-		{
-			if (typeof(T) != typeof(int))
-				throw new NotImplementedException();
-
-			return Unsafe.As<T, int>(ref value);
-		}
-
-		public string GetString()
-		{
-			if (typeof(T) != typeof(string))
-				throw new NotImplementedException();
-
-			return Unsafe.As<T, string>(ref value);
-		}
-
-		public void Set(float value)
-		{
-			if (typeof(T) != typeof(float))
-				throw new NotImplementedException();
-
-			this.value = Unsafe.As<float, T>(ref value);
-		}
-
-		public void Set(int value)
-		{
-			if (typeof(T) != typeof(int))
-				throw new NotImplementedException();
-
-			this.value = Unsafe.As<int, T>(ref value);
-		}
-
-		public void Set(bool value)
-		{
-			if (typeof(T) != typeof(bool))
-				throw new NotImplementedException();
-
-			this.value = Unsafe.As<bool, T>(ref value);
-		}
-
-		public void Set(string value)
-		{
-			if (typeof(T) != typeof(string))
-				throw new NotImplementedException();
-
-			this.value = Unsafe.As<string, T>(ref value);
+			this.value = Unsafe.As<T1, T>(ref value);
+			return true;
 		}
 	}
 }

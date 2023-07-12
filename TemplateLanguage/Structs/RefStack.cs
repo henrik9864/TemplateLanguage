@@ -40,7 +40,7 @@ namespace TemplateLanguage
 			methodBuff.Add(action);
 		}
 
-		public TAction Get(TType type, TMask rightMask, TMask middleMask, TMask leftMask)
+		public bool TryGet(TType type, TMask rightMask, TMask middleMask, TMask leftMask, out TAction action)
 		{
 			for (int i = 0; i < Count; i++)
 			{
@@ -48,11 +48,13 @@ namespace TemplateLanguage
 
 				if (t.Equals(type) && right.HasFlag(rightMask) && middle.HasFlag(middleMask) && left.HasFlag(leftMask))
 				{
-					return methodBuff[i];
+					action = methodBuff[i];
+					return true;
 				}
 			}
 
-			throw new Exception($"Node not found, Type: {type}, Right: {rightMask}, Middle: {middleMask}, Left: {leftMask}");
+			action = default;
+			return false;
 		}
 
 		public IEnumerator<TAction> GetEnumerator()

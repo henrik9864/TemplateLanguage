@@ -86,6 +86,9 @@
 				case NodeType.Else:
 					returnTypes[root] = ReturnType.None;
 					break;
+				case NodeType.Accessor:
+					returnTypes[root] = ReturnType.Variable;
+					break;
 				default:
 					throw new Exception("WTF!");
 			}

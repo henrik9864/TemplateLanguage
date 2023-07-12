@@ -22,6 +22,11 @@ namespace TemplateLanguage
 
 		ReturnType GetType();
 
+		bool TryGet<T>(out T value);
+
+		bool TrySet<T>(T value);
+
+		/*
 		float GetFloat();
 
 		int GetInt();
@@ -37,5 +42,6 @@ namespace TemplateLanguage
 		void Set(bool value);
 
 		void Set(string value);
+		*/
 	}
 }

@@ -75,7 +75,16 @@ namespace TemplateLanguage
 
             var language = new TemplateLanguage(txt, nodeTree, returnTypes);
 
-			language.Compute(ast.GetRoot(), sb, model);
+			var result = language.Compute(ast.GetRoot(), sb, model);
+            if (!result.Ok)
+            {
+                for (int i = 0; i < result.Errors.Count; i++)
+                {
+                    Console.WriteLine($"Error at line {result.Lines[i]}\n\t{result.Errors[i]}");
+                }
+
+                throw new Exception("Errors!");
+            }
 		}
 
         internal void Transition(EngineState newState, ref AbstractSyntaxTree ast, bool repeatToken = false)
