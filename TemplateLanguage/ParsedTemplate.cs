@@ -25,6 +25,7 @@ namespace TemplateLanguage
 			{ EngineState.String,     new StringState() },
 			{ EngineState.Expression, new ExpressionState() },
 			{ EngineState.Code,       new CodeState() },
+			{ EngineState.Variable,   new VariableState() },
 		};
 
 		ReadOnlySpan<char> txt;
@@ -36,7 +37,7 @@ namespace TemplateLanguage
 			this.enumerator = tokens.GetEnumerator();
 		}
 
-		public void RenderTo(StringBuilder sb, IModel model)
+		public void RenderTo(StringBuilder sb, ModelStack stack)
         {
 			var nodeArr = ArrayPool<Node>.Shared.Rent(4096);
             var ast = new AbstractSyntaxTree(nodeArr);
@@ -44,7 +45,7 @@ namespace TemplateLanguage
             ast.InsertStart();
             CalculateAst(EngineState.String, ref ast);
 
-			ComputeAst(sb, ref ast, model);
+			ComputeAst(sb, ref ast, stack);
 
 			ArrayPool<Node>.Shared.Return(nodeArr);
 		}
@@ -64,7 +65,7 @@ namespace TemplateLanguage
 			}
 		}
 
-		void ComputeAst(StringBuilder sb, ref AbstractSyntaxTree ast, IModel model)
+		void ComputeAst(StringBuilder sb, ref AbstractSyntaxTree ast, ModelStack stack)
         {
             Span<Node> nodeTree = ast.GetTree();
 			Span<ReturnType> returnTypes = stackalloc ReturnType[nodeTree.Length];
@@ -75,7 +76,7 @@ namespace TemplateLanguage
 
             var language = new TemplateLanguage(txt, nodeTree, returnTypes);
 
-			var result = language.Compute(ast.GetRoot(), sb, model);
+			var result = language.Compute(ast.GetRoot(), sb, stack);
             if (!result.Ok)
             {
                 for (int i = 0; i < result.Errors.Count; i++)
@@ -101,10 +102,9 @@ namespace TemplateLanguage
 			CalculateAst(newState, ref ast);
 		}
 
-        internal ref Token Consume()
+        internal bool Consume()
         {
-            enumerator.MoveNext();
-            return ref enumerator.Current;
+            return enumerator.MoveNext();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -118,6 +118,10 @@ namespace TemplateLanguage
 		{
             return ExitCode.Continue;
 		}
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal bool IsEnd()
+		 => enumerator.IsEnd();
 	}
 
     public class TemplateDebugger

@@ -51,7 +51,10 @@ namespace TemplateLanguage
 
 						break;
 					case OperatorType.Variable:
-						ast.InsertName(sm.Consume());
+						if (!sm.Consume())
+							return ExitCode.Exit;
+
+						ast.InsertName(token);
 						ast.InsertVariable();
 
 						break;

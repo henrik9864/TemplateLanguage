@@ -9,16 +9,24 @@ namespace TemplateLanguage.Test
 	public class TemplateLanguageTest
 	{
 		TemplateRules templateRules = new TemplateRules();
-		ModelNew model;
+		Model model;
+		ModelStack stack;
 
 		[TestInitialize]
 		public void Setup()
 		{
-			model = new ModelNew();
+			var model2 = new Model();
+			model2.Set("shaba", new Parameter<string>("wow"));
+
+			model = new Model();
 			model.Set("testVar", new Parameter<float>(6));
 			model.Set("testVar2", new Parameter<string>("slfgh"));
 			model.Set("testVar3", new Parameter<bool>(false));
 			model.Set("testVar4", new Parameter<float>(7));
+			model.Set("vari", new ModelParameter(model2));
+
+			stack = new ModelStack();
+			stack.Push(model);
 		}
 
 		[TestMethod]
@@ -84,7 +92,9 @@ namespace TemplateLanguage.Test
 		{
 			Assert.AreEqual("6", RunLanguage("|$testVar|", model));
 			Assert.AreEqual("slfgh", RunLanguage("|$testVar2|", model));
+			Assert.AreEqual("slfgh", RunLanguage("$testVar2", model));
 			Assert.AreEqual("False", RunLanguage("|$testVar3|", model));
+			Assert.AreEqual("wow", RunLanguage("$vari.shaba", model));
 			Assert.AreEqual("1", RunLanguage("|if $testVar==6 then 1 end|", model));
 			Assert.AreEqual("1", RunLanguage("|if 6==$testVar then 1 end|", model));
 			Assert.AreEqual("30", RunLanguage("|3*(4+$testVar)|", model));
@@ -107,7 +117,7 @@ namespace TemplateLanguage.Test
 			var template = new ParsedTemplate(txt, templateRules.GetEnumerable(txt));
 
 			var sb = new StringBuilder();
-			template.RenderTo(sb, model);
+			template.RenderTo(sb, stack);
 
 			return sb.ToString();
 		}

@@ -12,8 +12,6 @@ namespace TemplateLanguage
 			{typeof(string), ReturnType.String},
 		};
 
-		public IParameter this[ReadOnlySpan<char> name] => throw new NotImplementedException();
-
 		T value;
 
 		public Parameter(T value)
@@ -36,6 +34,12 @@ namespace TemplateLanguage
 
 			value = Unsafe.As<T, T1>(ref this.value);
 			return true;
+		}
+
+		public bool TryGet(ReadOnlySpan<char> name, out IParameter value)
+		{
+			value = default;
+			return false;
 		}
 
 		public bool TrySet<T1>(T1 value)

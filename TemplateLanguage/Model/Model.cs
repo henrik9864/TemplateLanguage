@@ -1,6 +1,8 @@
-﻿namespace TemplateLanguage
+﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+
+namespace TemplateLanguage
 {
-	public class ModelNew : IModel
+	public class Model : IModel
 	{
 		Dictionary<int, IParameter> data = new();
 

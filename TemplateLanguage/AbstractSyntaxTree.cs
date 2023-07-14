@@ -234,7 +234,7 @@ namespace TemplateLanguage
 			{
 				nodeInfo = $"{nodeRef.nodeType} - I: {node} V: {nodeRef.token.GetSpan(txt)} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
 			}
-			else if (nodeRef.nodeType == NodeType.TextBlock)
+			else if (nodeRef.nodeType == NodeType.String)
 			{
 				nodeInfo = $"{nodeRef.nodeType} - I: {node} C: {nodeRef.token.GetSpan(txt).Length} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
 			}

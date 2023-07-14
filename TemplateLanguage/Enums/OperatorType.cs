@@ -19,5 +19,7 @@
         Else,
         Elseif,
         End,
+
+        Accessor,
     }
 }

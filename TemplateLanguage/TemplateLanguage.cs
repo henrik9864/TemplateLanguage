@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.ComponentModel;
+using System.Drawing;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -51,8 +52,8 @@ namespace TemplateLanguage
 		}
 	}
 
-	delegate ComputeResult TemplateMethod(ref TemplateContext container, int root, StringBuilder sb, IModel model);
-	delegate ComputeResult TemplateMethod<T>(ref TemplateContext container, int root, StringBuilder sb, IModel model, out T result);
+	delegate ComputeResult TemplateMethod(ref TemplateContext container, in Node root, StringBuilder sb, ModelStack stack);
+	delegate ComputeResult TemplateMethod<T>(ref TemplateContext container, in Node root, StringBuilder sb, ModelStack stack, out T result);
 
 	static class TemplateLanguageRules
 	{
@@ -87,6 +88,7 @@ namespace TemplateLanguage
 			
 			// ------ Variable ------
 			{ NodeType.Variable, ReturnType.String, Variable },
+			{ NodeType.Accessor, ReturnType.String, ReturnType.Variable, Accessor },
 		};
 
 		static MethodContainer<NodeType, ReturnType, TemplateMethod<bool>> boolMethods = new()
@@ -99,6 +101,7 @@ namespace TemplateLanguage
 
 			// ------ Variable ------
 			{ NodeType.Variable, ReturnType.String, Variable },
+			{ NodeType.Accessor, ReturnType.String, ReturnType.Variable, Accessor },
 		};
 
 		static MethodContainer<NodeType, ReturnType, TemplateMethod<string>> strMethods = new()
@@ -108,6 +111,7 @@ namespace TemplateLanguage
 
 			// ------ Variable ------
 			{ NodeType.Variable, ReturnType.String, Variable },
+			{ NodeType.Accessor, ReturnType.String, ReturnType.Variable, Accessor },
 
 			// ------ Operators ------
 			{ NodeType.Add, ReturnType.String | ReturnType.Variable, ReturnType.String | ReturnType.Variable, Cat },
@@ -117,6 +121,7 @@ namespace TemplateLanguage
 		{
 			// ------ Variable ------
 			{ NodeType.Variable, ReturnType.String, VariableName },
+			{ NodeType.Accessor, ReturnType.String, ReturnType.Variable, Accessor },
 		};
 
 		static TemplateLanguageRules()
@@ -128,7 +133,7 @@ namespace TemplateLanguage
 			variableMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(variableMethods));
 		}
 
-		public static ComputeResult Compute(ref TemplateContext context, int node, StringBuilder sb, IModel model)
+		public static ComputeResult Compute(ref TemplateContext context, int node, StringBuilder sb, ModelStack stack)
 		{
 			if (node == -1)
 				return ComputeResult.OK;
@@ -139,49 +144,41 @@ namespace TemplateLanguage
 			if (!cr.Ok)
 				return cr;
 
-			return method(ref context, node, sb, model);
+			return method(ref context, rootNode, sb, stack);
 		}
 
-		static ComputeResult TextBlock(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static ComputeResult TextBlock(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			var result = Compute(ref context, node.right, sb, model);
+			var result = Compute(ref context, node.right, sb, stack);
 			sb.Append(node.token.GetSpan(context.txt));
 
 			return result;
 		}
 
-		static ComputeResult CodeBlock(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static ComputeResult CodeBlock(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			var resultRight = Compute(ref context, node.right, sb, model);
-			var resultLeft = ComputeAny(ref context, node.left, sb, model, appendResult: true);
+			var resultRight = Compute(ref context, node.right, sb, stack);
+			var resultLeft = ComputeAny(ref context, node.left, sb, stack, appendResult: true);
 
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
-		static ComputeResult NewLine(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static ComputeResult NewLine(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			var resultRight = ComputeAny(ref context, node.left, sb, model);
-			var resultLeft = ComputeAny(ref context, node.right, sb, model);
+			var resultRight = ComputeAny(ref context, node.left, sb, stack);
+			var resultLeft = ComputeAny(ref context, node.right, sb, stack);
 
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
-		static ComputeResult Assign(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static ComputeResult Assign(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
 			ReturnType rightType = GetType(ref context, node.right);
 			ReturnType leftType = GetType(ref context, node.left);
 
 			if (rightType.HasFlag(ReturnType.Variable))
 			{
-				var rightResult = Compute(ref context, node.right, sb, model, variableMethods, out IParameter parameter);
+				var rightResult = Compute(ref context, node.right, sb, stack, variableMethods, out IParameter parameter);
 
 				if (!rightResult.Ok)
 					return rightResult;
@@ -192,12 +189,12 @@ namespace TemplateLanguage
 			if (!leftType.HasFlag(ReturnType.Variable))
 				return new ComputeResult(false, $"Cannot assign to type {leftType}");
 
-			var varResult = Compute(ref context, node.left, sb, model, variableMethods, out IParameter var);
+			var varResult = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter var);
 			if (!varResult.Ok)
 			{
 				ref readonly Node varNode = ref context.nodes[node.left];
 				ref readonly Node varNameNode = ref context.nodes[varNode.right];
-				Compute(ref context, varNameNode.right, sb, model, strMethods, out string varName);
+				Compute(ref context, varNameNode.right, sb, stack, strMethods, out string varName);
 
 				switch (rightType)
 				{
@@ -214,7 +211,7 @@ namespace TemplateLanguage
 						return new ComputeResult(false, $"Assign does not support {rightType}");
 				}
 
-                model.Set(varName, var);
+                stack.Peek().Set(varName, var);
 			}
 
 			if (var.GetType() != rightType)
@@ -225,19 +222,19 @@ namespace TemplateLanguage
 			{
 				case ReturnType.Number:
 					{
-						leftResult = Compute(ref context, node.right, sb, model, numberMethods, out float val);
+						leftResult = Compute(ref context, node.right, sb, stack, numberMethods, out float val);
 						var.TrySet(val);
 					}
 					break;
 				case ReturnType.Bool:
 					{
-						leftResult = Compute(ref context, node.right, sb, model, boolMethods, out bool val);
+						leftResult = Compute(ref context, node.right, sb, stack, boolMethods, out bool val);
 						var.TrySet(val);
 					}
 					break;
 				case ReturnType.String:
 					{
-						leftResult = Compute(ref context, node.right, sb, model, strMethods, out string val);
+						leftResult = Compute(ref context, node.right, sb, stack, strMethods, out string val);
 						var.TrySet(val);
 					}
 					break;
@@ -248,33 +245,27 @@ namespace TemplateLanguage
 			return leftResult;
 		}
 
-		static ComputeResult Cat(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out string result)
+		static ComputeResult Cat(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out string result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			var resultRight = Compute(ref context, node.right, sb, model, strMethods, out string right);
-			var resultLeft = Compute(ref context, node.left, sb, model, strMethods, out string left);
+			var resultRight = Compute(ref context, node.right, sb, stack, strMethods, out string right);
+			var resultLeft = Compute(ref context, node.left, sb, stack, strMethods, out string left);
 
 			result = left + right;
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
-		static ComputeResult Start(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static ComputeResult Start(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			return Compute(ref context, node.right, sb, model);
+			return Compute(ref context, node.right, sb, stack);
 		}
 
-		static ComputeResult End(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static ComputeResult End(ref TemplateContext context, in Node nodeIdx, StringBuilder sb, ModelStack stack)
 		{
 			return ComputeResult.OK;
 		}
 
-		static ComputeResult Float(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out float result)
+		static ComputeResult Float(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out float result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
 			bool r = float.TryParse(node.token.GetSpan(context.txt), System.Globalization.CultureInfo.InvariantCulture, out result);
 			
 			if (!r)
@@ -283,10 +274,8 @@ namespace TemplateLanguage
 			return ComputeResult.OK;
 		}
 
-		static ComputeResult Integer(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out float result)
+		static ComputeResult Integer(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out float result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
 			bool r = int.TryParse(node.token.GetSpan(context.txt), System.Globalization.CultureInfo.InvariantCulture, out int integer);
 			result = integer;
 
@@ -296,10 +285,8 @@ namespace TemplateLanguage
 			return ComputeResult.OK;
 		}
 
-		static ComputeResult Bool(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out bool result)
+		static ComputeResult Bool(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out bool result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
 			bool r = bool.TryParse(node.token.GetSpan(context.txt), out result);
 
 			if (!r)
@@ -308,80 +295,68 @@ namespace TemplateLanguage
 			return ComputeResult.OK;
 		}
 
-		static ComputeResult String(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out string result)
+		static ComputeResult String(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out string result)
 		{
-			result = context.nodes[nodeIdx].token.GetSpan(context.txt).ToString();
-
+			result = node.token.GetSpan(context.txt).ToString();
 			return ComputeResult.OK;
 		}
 
-		static ComputeResult Add(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out float result)
+		static ComputeResult Add(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out float result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			var resultRight = Compute(ref context, node.right, sb, model, numberMethods, out float right);
-			var resultLeft = Compute(ref context, node.left, sb, model, numberMethods, out float left);
+			var resultRight = Compute(ref context, node.right, sb, stack, numberMethods, out float right);
+			var resultLeft = Compute(ref context, node.left, sb, stack, numberMethods, out float left);
 
 			result = left + right;
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
-		static ComputeResult Subtract(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out float result)
+		static ComputeResult Subtract(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out float result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			var resultRight = Compute(ref context, node.right, sb, model, numberMethods, out float right);
-			var resultLeft = Compute(ref context, node.left, sb, model, numberMethods, out float left);
+			var resultRight = Compute(ref context, node.right, sb, stack, numberMethods, out float right);
+			var resultLeft = Compute(ref context, node.left, sb, stack, numberMethods, out float left);
 
 			result = left - right;
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
-		static ComputeResult Multiply(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out float result)
+		static ComputeResult Multiply(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out float result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			var resultRight = Compute(ref context, node.right, sb, model, numberMethods, out float right);
-			var resultLeft = Compute(ref context, node.left, sb, model, numberMethods, out float left);
+			var resultRight = Compute(ref context, node.right, sb, stack, numberMethods, out float right);
+			var resultLeft = Compute(ref context, node.left, sb, stack, numberMethods, out float left);
 
 			result = left * right;
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
-		static ComputeResult Divide(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out float result)
+		static ComputeResult Divide(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out float result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			var resultRight = Compute(ref context, node.right, sb, model, numberMethods, out float right);
-			var resultLeft = Compute(ref context, node.left, sb, model, numberMethods, out float left);
+			var resultRight = Compute(ref context, node.right, sb, stack, numberMethods, out float right);
+			var resultLeft = Compute(ref context, node.left, sb, stack, numberMethods, out float left);
 
 			result = left / right;
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
-		static ComputeResult VariableName(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out IParameter result)
+		static ComputeResult VariableName(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out IParameter result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
+			var resultRight = Compute(ref context, node.right, sb, stack, strMethods, out string varName);
 
-			var resultRight = Compute(ref context, node.right, sb, model, strMethods, out string varName);
-
-			if (!model.TryGet(varName, out result))
+			if (!stack.TryGet(varName, out result))
 				return new ComputeResult(false, $"Variable with name {varName} does not exist");
 
 			return resultRight;
 		}
 
-		static ComputeResult Variable<T>(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out T result)
+		static ComputeResult Variable<T>(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out T result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-			var resultRight = Compute(ref context, node.right, sb, model, strMethods, out string varName);
+			var resultRight = Compute(ref context, node.right, sb, stack, strMethods, out string varName);
 			if (!resultRight.Ok)
 			{
 				result = default;
 				return resultRight;
 			}
 
-			if (!model.TryGet(varName, out IParameter var))
+			if (!stack.TryGet(varName, out IParameter var))
 			{
 				result = default;
 				return new ComputeResult(false, $"Variable with name {varName} does not exist");
@@ -393,16 +368,42 @@ namespace TemplateLanguage
 			return ComputeResult.OK;
 		}
 
-		static ComputeResult Equals(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out bool result)
+		static ComputeResult Accessor(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out IParameter result)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
+			var resultRight = Compute(ref context, node.right, sb, stack, strMethods, out string propName);
+			var resultLeft = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter var);
 
+			if (!var.TryGet(propName, out result))
+				return new ComputeResult(false, $"Cannot access prop {propName}");
+			
+			return ComputeResult.Combine(resultRight, resultLeft);
+		}
+
+		static ComputeResult Accessor<T>(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out T result)
+		{
+			var resultRight = Compute(ref context, node.right, sb, stack, strMethods, out string propName);
+			var resultLeft = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter var);
+
+			if (!var.TryGet(propName, out IParameter param))
+			{
+				result = default;
+				return new ComputeResult(false, $"Cannot access prop {propName}");
+			}
+
+			if (!param.TryGet(out result))
+				return new ComputeResult(false, $"Variable cannot be accessed as {nameof(T)}");
+
+			return ComputeResult.Combine(resultRight, resultLeft);
+		}
+
+		static ComputeResult Equals(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out bool result)
+		{
 			ReturnType rightType = GetType(ref context, node.right);
 			ReturnType leftType = GetType(ref context, node.left);
 
 			if (rightType.HasFlag(ReturnType.Variable))
 			{
-				var r = Compute(ref context, node.right, sb, model, variableMethods, out IParameter parameter);
+				var r = Compute(ref context, node.right, sb, stack, variableMethods, out IParameter parameter);
 
 				if (!r.Ok)
 				{
@@ -415,7 +416,7 @@ namespace TemplateLanguage
 
 			if (leftType.HasFlag(ReturnType.Variable))
 			{
-				var r = Compute(ref context, node.left, sb, model, variableMethods, out IParameter parameter);
+				var r = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter parameter);
 
 				if (!r.Ok)
 				{
@@ -430,15 +431,15 @@ namespace TemplateLanguage
 			ComputeResult resultLeft;
 			if (rightType == ReturnType.Number && leftType == ReturnType.Number)
 			{
-				resultRight = Compute(ref context, node.right, sb, model, numberMethods, out float right);
-				resultLeft = Compute(ref context, node.left, sb, model, numberMethods, out float left);
+				resultRight = Compute(ref context, node.right, sb, stack, numberMethods, out float right);
+				resultLeft = Compute(ref context, node.left, sb, stack, numberMethods, out float left);
 
 				result = left == right;
 			}
 			else if (rightType == ReturnType.Bool && leftType == ReturnType.Bool)
 			{
-				resultRight = Compute(ref context, node.right, sb, model, boolMethods, out bool right);
-				resultLeft = Compute(ref context, node.left, sb, model, boolMethods, out bool left);
+				resultRight = Compute(ref context, node.right, sb, stack, boolMethods, out bool right);
+				resultLeft = Compute(ref context, node.left, sb, stack, boolMethods, out bool left);
 
 				result = left == right;
 			}
@@ -451,37 +452,34 @@ namespace TemplateLanguage
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
-		static ComputeResult If(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model)
+		static ComputeResult If(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
 		{
-			ref readonly Node node = ref context.nodes[nodeIdx];
-
-			var cr = Compute(ref context, node.left, sb, model, boolMethods, out bool condition);
+			var cr = Compute(ref context, node.left, sb, stack, boolMethods, out bool condition);
 			if (!cr.Ok)
 				return cr;
 
 			if (condition)
-				return ComputeAny(ref context, node.middle, sb, model, true);
+				return ComputeAny(ref context, node.middle, sb, stack, true);
 			else
-				return ComputeAny(ref context, node.right, sb, model, true);
+				return ComputeAny(ref context, node.right, sb, stack, true);
 		}
 
 		static TemplateMethod<T> Bracket<T>(MethodContainer<NodeType, ReturnType, TemplateMethod<T>> container)
 		{
-			return (ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, out T result) =>
+			return (ref TemplateContext context, in Node nodeIdx, StringBuilder sb, ModelStack stack, out T result) =>
 			{
-				ref readonly Node node = ref context.nodes[nodeIdx];
-				return Compute(ref context, node.right, sb, model, container, out result);
+				return Compute(ref context, nodeIdx.right, sb, stack, container, out result);
 			};
 		}
 
-		public static ComputeResult ComputeAny(ref TemplateContext context, int nodeIdx, StringBuilder sb, IModel model, bool appendResult = false)
+		public static ComputeResult ComputeAny(ref TemplateContext context, int nodeIdx, StringBuilder sb, ModelStack stack, bool appendResult = false)
 		{
 			ReturnType type = GetType(ref context, nodeIdx);
 
 			if (type.HasFlag(ReturnType.Variable))
 			{
 				ref readonly Node node = ref context.nodes[nodeIdx];
-				var r = Compute(ref context, node.right, sb, model, variableMethods, out IParameter parameter);
+				var r = Compute(ref context, node.right, sb, stack, variableMethods, out IParameter parameter);
 
 				if (!r.Ok)
 					return r;
@@ -494,7 +492,7 @@ namespace TemplateLanguage
 			{
 				case ReturnType.Number:
 					{
-						result = Compute(ref context, nodeIdx, sb, model, numberMethods, out float value);
+						result = Compute(ref context, nodeIdx, sb, stack, numberMethods, out float value);
 
 						if (appendResult)
 							sb.Append(value);
@@ -502,7 +500,7 @@ namespace TemplateLanguage
 					break;
 				case ReturnType.Bool:
 					{
-						result = Compute(ref context, nodeIdx, sb, model, boolMethods, out bool value);
+						result = Compute(ref context, nodeIdx, sb, stack, boolMethods, out bool value);
 
 						if (appendResult)
 							sb.Append(value);
@@ -510,21 +508,21 @@ namespace TemplateLanguage
 					break;
 				case ReturnType.String:
 					{
-						result = Compute(ref context, nodeIdx, sb, model, strMethods, out string value);
+						result = Compute(ref context, nodeIdx, sb, stack, strMethods, out string value);
 
 						if (appendResult)
 							sb.Append(value);
 					}
 					break;
 				default:
-					result = Compute(ref context, nodeIdx, sb, model);
+					result = Compute(ref context, nodeIdx, sb, stack);
 					break;
 			}
 
 			return result;
 		}
 
-		public static ComputeResult Compute<T>(ref TemplateContext context, int node, StringBuilder sb, IModel model, MethodContainer<NodeType, ReturnType, TemplateMethod<T>> container, out T result)
+		public static ComputeResult Compute<T>(ref TemplateContext context, int node, StringBuilder sb, ModelStack stack, MethodContainer<NodeType, ReturnType, TemplateMethod<T>> container, out T result)
 		{
 			ref readonly Node rootNode = ref context.nodes[node];
 			var cr = TryGetMethod(ref context, container, rootNode, out TemplateMethod<T> method);
@@ -535,7 +533,7 @@ namespace TemplateLanguage
 				return cr;
 			}
 
-			return method(ref context, node, sb, model, out result);
+			return method(ref context, rootNode, sb, stack, out result);
 		}
 
 		static ReturnType GetType(ref TemplateContext context, int idx)
@@ -582,7 +580,7 @@ namespace TemplateLanguage
 			};
 		}
 
-		public ComputeResult Compute(int root, StringBuilder sb, IModel model)
-			=> TemplateLanguageRules.Compute(ref container, root, sb, model);
+		public ComputeResult Compute(int root, StringBuilder sb, ModelStack stack)
+			=> TemplateLanguageRules.Compute(ref container, root, sb, stack);
 	}
 }

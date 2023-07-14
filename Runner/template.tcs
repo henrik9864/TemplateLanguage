@@ -17,6 +17,7 @@ namespace $namespace
 		private $type $name_Stop = default;<~
 
 		$members|$name == "field"|~>
+		[FieldOffset($a)]
 		public | readonly ? $isReadonly | $type $name;
 		|$a = $a + $size|<~
 	}

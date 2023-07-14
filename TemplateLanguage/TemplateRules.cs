@@ -41,7 +41,7 @@ namespace Tokhenizer
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Bracket, BracketType.EnumerableAccessorOpen);
 
 			if (lexer.IsString("<~"))
-				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Bracket, BracketType.EnumerableAccessorOpen);
+				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Bracket, BracketType.EnumerableAccessorClose);
 
 			return lexer.Fail(out token);
         }
@@ -92,6 +92,9 @@ namespace Tokhenizer
 
 			if (lexer.Current == '/')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Divide);
+
+			if (lexer.Current == '.')
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Accessor);
 
 			return lexer.Fail(out token);
         }

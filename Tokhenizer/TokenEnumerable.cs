@@ -58,6 +58,9 @@ namespace Tokhenizer
 
                 throw new Exception($"Invalid character '{text[lexer.Index]}-({(byte)text[lexer.Index]})' at char {lexer.Index}");
             }
+
+            public bool IsEnd()
+                => lexer.IsEnd();
         }
 
         public Enumerator GetEnumerator()
