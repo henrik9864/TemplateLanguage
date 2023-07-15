@@ -70,9 +70,12 @@ namespace TemplateLanguage
             Span<Node> nodeTree = ast.GetTree();
 			Span<ReturnType> returnTypes = stackalloc ReturnType[nodeTree.Length];
 
+            ast.PrintStackDepth();
+            ast.PrintNodes();
+
             TemplateLanguageTypeResolver.ResolveTypes(ast.GetRoot(), nodeTree, returnTypes);
 
-			ast.PrintTree(txt, returnTypes, true);
+			ast.PrintTree(txt, returnTypes, false);
 
             var language = new TemplateLanguage(txt, nodeTree, returnTypes);
 

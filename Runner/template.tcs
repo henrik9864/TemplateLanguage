@@ -9,7 +9,7 @@ namespace $namespace
 	{
 		$members|$name == "array"|~>
 		[FieldOffset($a)]
-		public | readonly ? $isReadonly | FixedArray<$type> $name = new FixedArray<$type>($length);
+		public | "readonly" ? $isReadonly | FixedArray<$type> $name = new FixedArray<$type>($length);
 
 		|$a = $a + $intSize + $size * ($length - 1)|
 
@@ -18,7 +18,7 @@ namespace $namespace
 
 		$members|$name == "field"|~>
 		[FieldOffset($a)]
-		public | readonly ? $isReadonly | $type $name;
+		public | "readonly" ? $isReadonly | $type $name;
 		|$a = $a + $size|<~
 	}
 }

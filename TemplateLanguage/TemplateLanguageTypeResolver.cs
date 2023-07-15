@@ -69,6 +69,8 @@
 					returnTypes[root] = ReturnType.Number;
 					break;
 				case NodeType.Equals:
+				case NodeType.Greater:
+				case NodeType.Less:
 					returnTypes[root] = ReturnType.Bool;
 					break;
 				case NodeType.Assign:
@@ -88,6 +90,12 @@
 					break;
 				case NodeType.Accessor:
 					returnTypes[root] = ReturnType.Variable;
+					break;
+				case NodeType.AccessorBlock:
+					returnTypes[root] = ReturnType.None;
+					break;
+				case NodeType.Filter:
+					returnTypes[root] = rightType;
 					break;
 				default:
 					throw new Exception("WTF!");

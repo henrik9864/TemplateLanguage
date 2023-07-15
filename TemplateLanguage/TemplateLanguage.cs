@@ -50,6 +50,21 @@ namespace TemplateLanguage
 
 			return new ComputeResult(a.Ok && b.Ok, errors, lines);
 		}
+
+		public static ComputeResult Combine(ComputeResult a, ComputeResult b, ComputeResult c)
+		{
+			List<string> errors = new List<string>();
+			errors.AddRange(a.Errors);
+			errors.AddRange(b.Errors);
+			errors.AddRange(c.Errors);
+
+			List<int> lines = new List<int>();
+			lines.AddRange(a.Lines);
+			lines.AddRange(b.Lines);
+			lines.AddRange(c.Lines);
+
+			return new ComputeResult(a.Ok && b.Ok && c.Ok, errors, lines);
+		}
 	}
 
 	delegate ComputeResult TemplateMethod(ref TemplateContext container, in Node root, StringBuilder sb, ModelStack stack);
@@ -68,6 +83,7 @@ namespace TemplateLanguage
 			{ NodeType.TextBlock, ReturnType.Any, TextBlock },
 			{ NodeType.CodeBlock, ReturnType.Any, ReturnType.Any, CodeBlock },
 			{ NodeType.NewLine, ReturnType.Any, ReturnType.Any, NewLine },
+			{ NodeType.AccessorBlock, ReturnType.Any, ReturnType.Unknown | ReturnType.Bool, ReturnType.Variable, AccessorBlock },
 
 			// ------ Operators ------
 			{ NodeType.If, ReturnType.Any, ReturnType.Any, ReturnType.Bool | ReturnType.Variable, If },
@@ -98,6 +114,8 @@ namespace TemplateLanguage
 
 			// ------ Operators ------
 			{ NodeType.Equals, ReturnType.Number | ReturnType.Bool | ReturnType.Variable, ReturnType.Number | ReturnType.Bool | ReturnType.Variable, Equals },
+			{ NodeType.Greater, ReturnType.Number | ReturnType.Variable, ReturnType.Number | ReturnType.Variable, Greater },
+			{ NodeType.Less, ReturnType.Number | ReturnType.Variable, ReturnType.Number | ReturnType.Variable, Less },
 
 			// ------ Variable ------
 			{ NodeType.Variable, ReturnType.String, Variable },
@@ -129,6 +147,7 @@ namespace TemplateLanguage
 			// Add brackets to the containers
 			numberMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(numberMethods));
 			boolMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(boolMethods));
+			boolMethods.Add(NodeType.Filter, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(boolMethods));
 			strMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(strMethods));
 			variableMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(variableMethods));
 		}
@@ -159,6 +178,34 @@ namespace TemplateLanguage
 		{
 			var resultRight = Compute(ref context, node.right, sb, stack);
 			var resultLeft = ComputeAny(ref context, node.left, sb, stack, appendResult: true);
+
+			return ComputeResult.Combine(resultRight, resultLeft);
+		}
+
+		static ComputeResult AccessorBlock(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
+		{
+			var resultLeft = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter parameter);
+
+			if (!parameter.TryGet(out IModel model))
+				return new ComputeResult(false, "Variable cannot be made a model");
+
+			ReturnType middleType = GetType(ref context, node.middle);
+			if (middleType == ReturnType.Bool)
+			{
+				stack.Push(model);
+				var resultMiddle = Compute(ref context, node.middle, sb, stack, boolMethods, out bool predicate);
+				stack.Pop();
+
+				if (!resultMiddle.Ok)
+					return ComputeResult.Combine(resultMiddle, resultLeft);
+
+				if (!predicate)
+					return ComputeResult.OK;
+			}
+
+			stack.Push(model);
+			var resultRight = ComputeAny(ref context, node.right, sb, stack, appendResult: true);
+			stack.Pop();
 
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
@@ -363,7 +410,7 @@ namespace TemplateLanguage
 			}
 
 			if (!var.TryGet(out result))
-				return new ComputeResult(false, $"Variable of type {varName} cannot be accessed as {nameof(T)}");
+				return new ComputeResult(false, $"Variable of type {varName} cannot be accessed as {typeof(T).Name}");
 
 			return ComputeResult.OK;
 		}
@@ -396,39 +443,35 @@ namespace TemplateLanguage
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
+		static ComputeResult ResolveVariableType(ref TemplateContext context, int nodeIdx, StringBuilder sb, ModelStack stack, out ReturnType result)
+		{
+			result = GetType(ref context, nodeIdx);
+
+			if (result.HasFlag(ReturnType.Variable))
+			{
+				var r = Compute(ref context, nodeIdx, sb, stack, variableMethods, out IParameter parameter);
+
+				if (!r.Ok)
+					return r;
+
+				result = parameter.GetType();
+			}
+
+			return ComputeResult.OK;
+		}
+
 		static ComputeResult Equals(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out bool result)
 		{
-			ReturnType rightType = GetType(ref context, node.right);
-			ReturnType leftType = GetType(ref context, node.left);
+			var resultRightType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType rightType);
+			var resultLeftType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType leftType);
 
-			if (rightType.HasFlag(ReturnType.Variable))
+			if (!resultRightType.Ok || !resultLeftType.Ok)
 			{
-				var r = Compute(ref context, node.right, sb, stack, variableMethods, out IParameter parameter);
-
-				if (!r.Ok)
-				{
-					result = false;
-					return r;
-				}
-
-				rightType = parameter.GetType();
+				result = false;
+				return ComputeResult.Combine(resultRightType, resultLeftType);
 			}
 
-			if (leftType.HasFlag(ReturnType.Variable))
-			{
-				var r = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter parameter);
-
-				if (!r.Ok)
-				{
-					result = false;
-					return r;
-				}
-
-				leftType = parameter.GetType();
-			}
-
-			ComputeResult resultRight;
-			ComputeResult resultLeft;
+			ComputeResult resultRight, resultLeft;
 			if (rightType == ReturnType.Number && leftType == ReturnType.Number)
 			{
 				resultRight = Compute(ref context, node.right, sb, stack, numberMethods, out float right);
@@ -442,6 +485,62 @@ namespace TemplateLanguage
 				resultLeft = Compute(ref context, node.left, sb, stack, boolMethods, out bool left);
 
 				result = left == right;
+			}
+			else
+			{
+				result = false;
+				return new ComputeResult(false, $"Cannot compare types {rightType} and {leftType}");
+			}
+
+			return ComputeResult.Combine(resultRight, resultLeft);
+		}
+
+		static ComputeResult Greater(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out bool result)
+		{
+			var resultRightType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType rightType);
+			var resultLeftType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType leftType);
+
+			if (!resultRightType.Ok || !resultLeftType.Ok)
+			{
+				result = false;
+				return ComputeResult.Combine(resultRightType, resultLeftType);
+			}
+
+			ComputeResult resultRight, resultLeft;
+			if (rightType == ReturnType.Number && leftType == ReturnType.Number)
+			{
+				resultRight = Compute(ref context, node.right, sb, stack, numberMethods, out float right);
+				resultLeft = Compute(ref context, node.left, sb, stack, numberMethods, out float left);
+
+				result = left > right;
+			}
+			else
+			{
+				result = false;
+				return new ComputeResult(false, $"Cannot compare types {rightType} and {leftType}");
+			}
+
+			return ComputeResult.Combine(resultRight, resultLeft);
+		}
+
+		static ComputeResult Less(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out bool result)
+		{
+			var resultRightType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType rightType);
+			var resultLeftType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType leftType);
+
+			if (!resultRightType.Ok || !resultLeftType.Ok)
+			{
+				result = false;
+				return ComputeResult.Combine(resultRightType, resultLeftType);
+			}
+
+			ComputeResult resultRight, resultLeft;
+			if (rightType == ReturnType.Number && leftType == ReturnType.Number)
+			{
+				resultRight = Compute(ref context, node.right, sb, stack, numberMethods, out float right);
+				resultLeft = Compute(ref context, node.left, sb, stack, numberMethods, out float left);
+
+				result = left < right;
 			}
 			else
 			{

@@ -17,6 +17,7 @@ namespace TemplateLanguage.Test
 		{
 			var model2 = new Model();
 			model2.Set("shaba", new Parameter<string>("wow"));
+			model2.Set("shaba2", new Parameter<float>(25));
 
 			model = new Model();
 			model.Set("testVar", new Parameter<float>(6));
@@ -108,8 +109,18 @@ namespace TemplateLanguage.Test
 			Assert.AreEqual("1", RunLanguage("|$a=1|$a", model));
 			Assert.AreEqual("", RunLanguage("|$testVar=6|", model));
 			Assert.AreEqual("7", RunLanguage("|$testVar=$testVar4|$testVar", model));
-			Assert.AreEqual("75", RunLanguage("$testVar|$testVar=5|$testVar", model));
+			Assert.AreEqual("7  5", RunLanguage("$testVar |$testVar=5| $testVar", model));
 			Assert.AreEqual("56", RunLanguage("|$testVar||$testVar=6||$testVar|", model));
+		}
+
+		[TestMethod]
+		public void TestBlock()
+		{
+			Assert.AreEqual("wow", RunLanguage("$vari->$shaba<-", model));
+			Assert.AreEqual("25", RunLanguage("$vari->$shaba2<-", model));
+			Assert.AreEqual("", RunLanguage("$vari|$shaba2 < 5|->$shaba2<-", model));
+			Assert.AreEqual("25", RunLanguage("$vari|$shaba2 > 5|->$shaba2<-", model));
+			Assert.AreEqual("{wow}", RunLanguage("{$vari|$shaba2 > 5|->$shaba<-}", model));
 		}
 
 		public string RunLanguage(ReadOnlySpan<char> txt, IModel model)

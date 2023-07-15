@@ -5,7 +5,7 @@ using TemplateLanguage;
 using Tokhenizer;
 
 var model2 = new Model();
-model2.Set("shaba", new Parameter<string>("wow"));
+model2.Set("shaba", new Parameter<float>(24));
 
 var model = new Model();
 model.Set("a", new Parameter<float>(2));

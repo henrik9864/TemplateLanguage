@@ -16,7 +16,9 @@ namespace TemplateLanguage
 		TextBlock,
 		CodeBlock,
 		VariableBlock,
+		AccessorBlock,
 		Bracket,
+		Filter,
 
 		Integer,
 		Float,
@@ -36,6 +38,8 @@ namespace TemplateLanguage
 		If,
 		Else,
 		Equals,
+		Greater,
+		Less
 	}
 
 	struct Node

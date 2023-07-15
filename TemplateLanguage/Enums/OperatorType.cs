@@ -6,7 +6,9 @@
         Asssign,
         Equals,
         Greater,
+        GreaterEquals,
         Less,
+        LessEquals,
         Conditional,
 
         Add,

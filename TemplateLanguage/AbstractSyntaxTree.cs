@@ -36,7 +36,9 @@ namespace TemplateLanguage
 			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
-			Node.Create(ref nodeTree[currIdx], NodeType.TextBlock, token: token, right: rootNode.right);
+			int right = rootNode.right == currIdx ? -1 : rootNode.right;
+
+			Node.Create(ref nodeTree[currIdx], NodeType.TextBlock, token: token, right: right);
 			rootNode.right = currIdx;
 
 			currIdx++;
@@ -58,8 +60,21 @@ namespace TemplateLanguage
 			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
 
-			Node.Create(ref nodeTree[currIdx], NodeType.CodeBlock, right: rootNode.right, left: currIdx + 1);
+			int right = rootNode.right == currIdx ? -1 : rootNode.right;
+
+			Node.Create(ref nodeTree[currIdx], NodeType.CodeBlock, right: right, left: currIdx + 1);
 			rootNode.right = currIdx;
+
+			currIdx++;
+		}
+
+		public void InsertFilter()
+		{
+			int rootIdx = currRoot.Peek();
+			ref Node rootNode = ref nodeTree[rootIdx];
+
+			Node.Create(ref nodeTree[currIdx], NodeType.Filter, right: currIdx + 1);
+			rootNode.middle = currIdx;
 
 			currIdx++;
 		}
@@ -106,8 +121,9 @@ namespace TemplateLanguage
 
 			int left = rootNode.right == currIdx ? -1 : rootNode.right;
 
-			Node.Create(ref nodeTree[currIdx], type, right: currIdx + 1, left: left);
+			Node.Create(ref nodeTree[currIdx], type, right: currIdx + 1, middle: rootNode.middle, left: left);
 			rootNode.right = currIdx;
+			rootNode.middle = -1;
 
 			currIdx++;
 		}
@@ -141,9 +157,10 @@ namespace TemplateLanguage
 		{
 			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
-			rootNode.right = currIdx;
 
 			Node.Create(ref nodeTree[currIdx], NodeType.Variable, right: currIdx - 1);
+			rootNode.right = currIdx;
+
 			currIdx++;
 		}
 
@@ -172,12 +189,15 @@ namespace TemplateLanguage
 
 	internal static class AbstractSyntaxTreeExtensions
 	{
-		public static void PrintTree(this ref AbstractSyntaxTree ast, in ReadOnlySpan<char> txt, scoped ReadOnlySpan<ReturnType> returnTypes, bool simplified)
+		public static void PrintStackDepth(this ref AbstractSyntaxTree ast)
+		{
+			Console.WriteLine($"Stack Depth: {ast.GetStackDepth()}");
+			Console.WriteLine();
+		}
+
+		public static void PrintNodes(this ref AbstractSyntaxTree ast)
 		{
 			var tree = ast.GetTree();
-
-			Console.WriteLine($"Stack Depth: {ast.GetStackDepth()}");
-            Console.WriteLine();
 
 			Console.Write('|');
 			for (int i = 0; i < tree.Length; i++)
@@ -188,8 +208,8 @@ namespace TemplateLanguage
 			Console.BackgroundColor = ConsoleColor.Black;
 			Console.ForegroundColor = ConsoleColor.White;
 			Console.Write('|');
-            Console.WriteLine();
-            Console.Write('|');
+			Console.WriteLine();
+			Console.Write('|');
 			for (int i = 0; i < tree.Length; i++)
 			{
 				if (i % 2 == 0)
@@ -207,9 +227,14 @@ namespace TemplateLanguage
 			Console.BackgroundColor = ConsoleColor.Black;
 			Console.ForegroundColor = ConsoleColor.White;
 			Console.Write('|');
-            
+
 			Console.WriteLine();
-            Console.WriteLine();
+			Console.WriteLine();
+		}
+
+		public static void PrintTree(this ref AbstractSyntaxTree ast, in ReadOnlySpan<char> txt, scoped ReadOnlySpan<ReturnType> returnTypes, bool simplified)
+		{
+			var tree = ast.GetTree();
 
 			List<int> visited = new List<int>();
 			PrintTree(txt, tree, returnTypes, ast.GetRoot(), 0, visited, simplified);
@@ -234,7 +259,7 @@ namespace TemplateLanguage
 			{
 				nodeInfo = $"{nodeRef.nodeType} - I: {node} V: {nodeRef.token.GetSpan(txt)} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
 			}
-			else if (nodeRef.nodeType == NodeType.String)
+			else if (nodeRef.nodeType == NodeType.String || nodeRef.nodeType == NodeType.TextBlock)
 			{
 				nodeInfo = $"{nodeRef.nodeType} - I: {node} C: {nodeRef.token.GetSpan(txt).Length} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
 			}

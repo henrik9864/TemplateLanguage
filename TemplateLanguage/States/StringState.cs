@@ -7,6 +7,9 @@ namespace TemplateLanguage
 	{
 		public ExitCode OnStep(ref ParsedTemplate sm, ref AbstractSyntaxTree ast, ref Token token)
 		{
+			if (token.Is(TokenType.Bracket, BracketType.AccessorClose))
+				return sm.PopState();
+
 			if (token.Is(TokenType.Bracket, BracketType.Code))
 			{
 				ast.StartCodeBlock();
@@ -21,7 +24,7 @@ namespace TemplateLanguage
 				sm.Transition(EngineState.Variable, ref ast, repeatToken: true);
 				ast.BracketClose();
 
-				if (sm.IsEnd())
+                if (sm.IsEnd() || token.Is(TokenType.Bracket, BracketType.AccessorClose))
 					return sm.Continue();
 
 				return OnStep(ref sm, ref ast, ref token);
@@ -43,7 +46,7 @@ namespace TemplateLanguage
 			{
 				if (!sm.Consume())
 					return ExitCode.Exit;
-
+				
 				ast.InsertName(token);
 				ast.InsertVariable();
 
@@ -56,6 +59,24 @@ namespace TemplateLanguage
 
 				ast.InsertOperator(NodeType.Accessor);
 				ast.InsertName(token);
+
+				return sm.Continue();
+			}
+			else if (token.Is(TokenType.Bracket, BracketType.AccessorOpen))
+			{
+				ast.InsertOperator(NodeType.AccessorBlock);
+				ast.BracketOpen();
+				sm.Transition(EngineState.String, ref ast, repeatToken: false);
+				ast.BracketClose();
+
+				return sm.PopState();
+			}
+			else if (token.Is(TokenType.Bracket, BracketType.Code))
+			{
+                ast.InsertFilter();
+				ast.BracketOpen();
+				sm.Transition(EngineState.Code, ref ast, repeatToken: false);
+				ast.BracketClose();
 
 				return sm.Continue();
 			}

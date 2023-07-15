@@ -39,6 +39,12 @@ namespace TemplateLanguage
 					case OperatorType.Equals:
 						ast.InsertOperator(NodeType.Equals);
 						break;
+					case OperatorType.Greater:
+						ast.InsertOperator(NodeType.Greater);
+						break;
+					case OperatorType.Less:
+						ast.InsertOperator(NodeType.Less);
+						break;
 					case OperatorType.If:
 						int ifIdx = 0;
 

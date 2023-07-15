@@ -54,8 +54,14 @@ namespace Tokhenizer
 			if (lexer.Current == '<')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Less);
 
+			if (lexer.IsString("<="))
+				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.LessEquals);
+
 			if (lexer.Current == '>')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Greater);
+
+			if (lexer.IsString(">="))
+				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.GreaterEquals);
 
 			if (lexer.IsString("elseif"))
 				return lexer.ConsumeAndCreateToken(6, out token, TokenType.Operator, OperatorType.Elseif);
@@ -162,7 +168,7 @@ namespace Tokhenizer
 
         bool StringRule(ref Lexer lexer, out Token token)
         {
-            while (!lexer.IsEnd() && char.IsLetterOrDigit(lexer.Current) && !OperatorRule(ref lexer, out _) && !BracketRule(ref lexer, out _))
+            while (!lexer.IsEnd() && (char.IsLetterOrDigit(lexer.Current) || lexer.Current == '{' || lexer.Current == '}'))
 				lexer.Consume();
 
 			return lexer.TryCreateToken(out token, TokenType.String);
