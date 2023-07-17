@@ -9,7 +9,9 @@
 		Bool = 4,
 		String = 8,
 		Variable = 16,
-		Any = 31,
+		Model = 32,
+		Enumerable = 64,
+		Any = 127,
 	}
 
 	internal static class TemplateLanguageTypeResolver
@@ -71,6 +73,8 @@
 				case NodeType.Equals:
 				case NodeType.Greater:
 				case NodeType.Less:
+				case NodeType.And:
+				case NodeType.Or:
 					returnTypes[root] = ReturnType.Bool;
 					break;
 				case NodeType.Assign:
@@ -94,8 +98,14 @@
 				case NodeType.AccessorBlock:
 					returnTypes[root] = ReturnType.None;
 					break;
+				case NodeType.EnumerableAccessorBlock:
+					returnTypes[root] = ReturnType.None;
+					break;
 				case NodeType.Filter:
 					returnTypes[root] = rightType;
+					break;
+				case NodeType.Conditional:
+					returnTypes[root] = leftType;
 					break;
 				default:
 					throw new Exception("WTF!");

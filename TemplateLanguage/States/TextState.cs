@@ -3,11 +3,11 @@ using Tokhenizer;
 
 namespace TemplateLanguage
 {
-	internal class StringState : IState
+	internal class TextState : IState
 	{
 		public ExitCode OnStep(ref ParsedTemplate sm, ref AbstractSyntaxTree ast, ref Token token)
 		{
-			if (token.Is(TokenType.Bracket, BracketType.AccessorClose))
+			if (token.Is(TokenType.Bracket, BracketType.AccessorClose) || token.Is(TokenType.Bracket, BracketType.EnumerableAccessorClose))
 				return sm.PopState();
 
 			if (token.Is(TokenType.Bracket, BracketType.Code))
@@ -24,14 +24,11 @@ namespace TemplateLanguage
 				sm.Transition(EngineState.Variable, ref ast, repeatToken: true);
 				ast.BracketClose();
 
-                if (sm.IsEnd() || token.Is(TokenType.Bracket, BracketType.AccessorClose))
-					return sm.Continue();
-
-				return OnStep(ref sm, ref ast, ref token);
+                return OnStep(ref sm, ref ast, ref token);
 			}
 			else
 			{
-				ast.InsertString(token);
+				ast.InsertTextBlock(token);
 			}
 
 			return sm.Continue();
@@ -47,7 +44,7 @@ namespace TemplateLanguage
 				if (!sm.Consume())
 					return ExitCode.Exit;
 				
-				ast.InsertName(token);
+				ast.InsertString(token);
 				ast.InsertVariable();
 
 				return sm.Continue();
@@ -58,7 +55,7 @@ namespace TemplateLanguage
 					return ExitCode.Exit;
 
 				ast.InsertOperator(NodeType.Accessor);
-				ast.InsertName(token);
+				ast.InsertString(token);
 
 				return sm.Continue();
 			}
@@ -66,9 +63,20 @@ namespace TemplateLanguage
 			{
 				ast.InsertOperator(NodeType.AccessorBlock);
 				ast.BracketOpen();
-				sm.Transition(EngineState.String, ref ast, repeatToken: false);
+				sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
 				ast.BracketClose();
 
+				sm.Consume();
+				return sm.PopState();
+			}
+			else if (token.Is(TokenType.Bracket, BracketType.EnumerableAccessorOpen))
+			{
+				ast.InsertOperator(NodeType.EnumerableAccessorBlock);
+				ast.BracketOpen();
+				sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
+				ast.BracketClose();
+
+				sm.Consume();
 				return sm.PopState();
 			}
 			else if (token.Is(TokenType.Bracket, BracketType.Code))

@@ -18,5 +18,10 @@ namespace TemplateLanguage
 		{
 			return data.TryGetValue(string.GetHashCode(name), out parameter);
 		}
+
+		public IEnumerable<IParameter> GetEnumerable()
+		{
+			return data.Select(x => x.Value);
+		}
 	}
 }

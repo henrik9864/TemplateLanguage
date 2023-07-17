@@ -1,24 +1,25 @@
 ﻿using EnCS;
 using System;
-using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;|$a=0|
 
 namespace $namespace
 {
 	[StructLayout(LayoutKind.Explicit)]
 	public sealed class $name
 	{
+		public static uint Id => |$container|.GetTypeID<$name>();
+
 		$members|$name == "array"|~>
 		[FieldOffset($a)]
-		public | "readonly" ? $isReadonly | FixedArray<$type> $name = new FixedArray<$type>($length);
-
-		|$a = $a + $intSize + $size * ($length - 1)|
+		public | "readonly" ? $isReadonly | FixedArray<$type> $name = new FixedArray<$type>($length);|$a = $a + $intSize + $size * ($length - 1)|
 
 		[FieldOffset($a)]
-		private $type $name_Stop = default;<~
+		private $type |$name|_stop = default;
+		|$a = $a + $size|<~
 
 		$members|$name == "field"|~>
 		[FieldOffset($a)]
-		public | "readonly" ? $isReadonly | $type $name;
+		public | "readonly" ? $isReadonly | $type |$name|;
 		|$a = $a + $size|<~
 	}
 }

@@ -4,12 +4,15 @@
     {
         Variable,
         Asssign,
+        Conditional,
+
         Equals,
         Greater,
         GreaterEquals,
         Less,
         LessEquals,
-        Conditional,
+        And,
+        Or,
 
         Add,
         Subtract,

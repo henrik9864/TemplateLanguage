@@ -1,1 +1,4 @@
 Improve assign variable creation
+Loose string
+Rework node -> ast states
+Fix int float debacle

@@ -84,6 +84,7 @@ namespace TemplateLanguage
 			{ NodeType.CodeBlock, ReturnType.Any, ReturnType.Any, CodeBlock },
 			{ NodeType.NewLine, ReturnType.Any, ReturnType.Any, NewLine },
 			{ NodeType.AccessorBlock, ReturnType.Any, ReturnType.Unknown | ReturnType.Bool, ReturnType.Variable, AccessorBlock },
+			{ NodeType.EnumerableAccessorBlock, ReturnType.Any, ReturnType.Unknown | ReturnType.Bool, ReturnType.Variable, EnumerableAccessorBlock },
 
 			// ------ Operators ------
 			{ NodeType.If, ReturnType.Any, ReturnType.Any, ReturnType.Bool | ReturnType.Variable, If },
@@ -113,9 +114,11 @@ namespace TemplateLanguage
 			{ NodeType.Bool, Bool },
 
 			// ------ Operators ------
-			{ NodeType.Equals, ReturnType.Number | ReturnType.Bool | ReturnType.Variable, ReturnType.Number | ReturnType.Bool | ReturnType.Variable, Equals },
+			{ NodeType.Equals, ReturnType.Number | ReturnType.Bool | ReturnType.Variable | ReturnType.String, ReturnType.Number | ReturnType.Bool | ReturnType.Variable | ReturnType.String, Equals },
 			{ NodeType.Greater, ReturnType.Number | ReturnType.Variable, ReturnType.Number | ReturnType.Variable, Greater },
 			{ NodeType.Less, ReturnType.Number | ReturnType.Variable, ReturnType.Number | ReturnType.Variable, Less },
+			{ NodeType.And, ReturnType.Bool | ReturnType.Variable, ReturnType.Bool | ReturnType.Variable, And },
+			{ NodeType.Or, ReturnType.Bool | ReturnType.Variable, ReturnType.Bool | ReturnType.Variable, Or },
 
 			// ------ Variable ------
 			{ NodeType.Variable, ReturnType.String, Variable },
@@ -145,11 +148,15 @@ namespace TemplateLanguage
 		static TemplateLanguageRules()
 		{
 			// Add brackets to the containers
-			numberMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(numberMethods));
-			boolMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(boolMethods));
-			boolMethods.Add(NodeType.Filter, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(boolMethods));
-			strMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(strMethods));
-			variableMethods.Add(NodeType.Bracket, ReturnType.Any, ReturnType.Unknown, ReturnType.Unknown, Bracket(variableMethods));
+			numberMethods.Add(NodeType.Bracket, ReturnType.Any, Bracket(numberMethods));
+			boolMethods.Add(NodeType.Bracket, ReturnType.Any, Bracket(boolMethods));
+			boolMethods.Add(NodeType.Filter, ReturnType.Any, Bracket(boolMethods));
+			strMethods.Add(NodeType.Bracket, ReturnType.Any, Bracket(strMethods));
+			variableMethods.Add(NodeType.Bracket, ReturnType.Any, Bracket(variableMethods));
+
+			numberMethods.Add(NodeType.Conditional, ReturnType.Bool | ReturnType.Variable, ReturnType.Number, Conditional(numberMethods));
+			boolMethods.Add(NodeType.Conditional, ReturnType.Bool | ReturnType.Variable, ReturnType.Bool, Conditional(boolMethods));
+			strMethods.Add(NodeType.Conditional, ReturnType.Bool | ReturnType.Variable, ReturnType.String, Conditional(strMethods));
 		}
 
 		public static ComputeResult Compute(ref TemplateContext context, int node, StringBuilder sb, ModelStack stack)
@@ -186,6 +193,9 @@ namespace TemplateLanguage
 		{
 			var resultLeft = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter parameter);
 
+			if (!resultLeft.Ok)
+				return resultLeft;
+
 			if (!parameter.TryGet(out IModel model))
 				return new ComputeResult(false, "Variable cannot be made a model");
 
@@ -197,7 +207,7 @@ namespace TemplateLanguage
 				stack.Pop();
 
 				if (!resultMiddle.Ok)
-					return ComputeResult.Combine(resultMiddle, resultLeft);
+					return resultMiddle;
 
 				if (!predicate)
 					return ComputeResult.OK;
@@ -207,7 +217,44 @@ namespace TemplateLanguage
 			var resultRight = ComputeAny(ref context, node.right, sb, stack, appendResult: true);
 			stack.Pop();
 
-			return ComputeResult.Combine(resultRight, resultLeft);
+			return resultRight;
+		}
+
+		static ComputeResult EnumerableAccessorBlock(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
+		{
+			var resultLeft = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter parameter);
+
+			if (!resultLeft.Ok)
+				return resultLeft;
+
+			if (!parameter.TryGet(out IEnumerable<IModel> models))
+				return new ComputeResult(false, "Variable is not an enumerable model");
+
+            foreach (IModel model in models)
+			{
+                ReturnType middleType = GetType(ref context, node.middle);
+				if (middleType == ReturnType.Bool)
+				{
+					stack.Push(model);
+					var resultMiddle = Compute(ref context, node.middle, sb, stack, boolMethods, out bool predicate);
+					stack.Pop();
+
+                    if (!resultMiddle.Ok)
+						return resultMiddle;
+
+					if (!predicate)
+						continue;
+				}
+
+				stack.Push(model);
+				var resultRight = ComputeAny(ref context, node.right, sb, stack, appendResult: true);
+				stack.Pop();
+
+                if (!resultRight.Ok)
+					return resultRight;
+			}
+
+			return ComputeResult.OK;
 		}
 
 		static ComputeResult NewLine(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
@@ -258,7 +305,7 @@ namespace TemplateLanguage
 						return new ComputeResult(false, $"Assign does not support {rightType}");
 				}
 
-                stack.Peek().Set(varName, var);
+                stack.PeekBottom().Set(varName, var);
 			}
 
 			if (var.GetType() != rightType)
@@ -486,6 +533,13 @@ namespace TemplateLanguage
 
 				result = left == right;
 			}
+			else if (rightType == ReturnType.String && leftType == ReturnType.String)
+			{
+				resultRight = Compute(ref context, node.right, sb, stack, strMethods, out string right);
+				resultLeft = Compute(ref context, node.left, sb, stack, strMethods, out string left);
+
+				result = left == right;
+			}
 			else
 			{
 				result = false;
@@ -551,6 +605,62 @@ namespace TemplateLanguage
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
+		static ComputeResult And(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out bool result)
+		{
+			var resultRightType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType rightType);
+			var resultLeftType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType leftType);
+
+			if (!resultRightType.Ok || !resultLeftType.Ok)
+			{
+				result = false;
+				return ComputeResult.Combine(resultRightType, resultLeftType);
+			}
+
+			ComputeResult resultRight, resultLeft;
+			if (rightType == ReturnType.Bool && leftType == ReturnType.Bool)
+			{
+				resultRight = Compute(ref context, node.right, sb, stack, boolMethods, out bool right);
+				resultLeft = Compute(ref context, node.left, sb, stack, boolMethods, out bool left);
+
+				result = left && right;
+			}
+			else
+			{
+				result = false;
+				return new ComputeResult(false, $"Cannot compare types {rightType} and {leftType}");
+			}
+
+			return ComputeResult.Combine(resultRight, resultLeft);
+		}
+
+		static ComputeResult Or(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out bool result)
+		{
+			var resultRightType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType rightType);
+			var resultLeftType = ResolveVariableType(ref context, node.right, sb, stack, out ReturnType leftType);
+
+			if (!resultRightType.Ok || !resultLeftType.Ok)
+			{
+				result = false;
+				return ComputeResult.Combine(resultRightType, resultLeftType);
+			}
+
+			ComputeResult resultRight, resultLeft;
+			if (rightType == ReturnType.Bool && leftType == ReturnType.Bool)
+			{
+				resultRight = Compute(ref context, node.right, sb, stack, boolMethods, out bool right);
+				resultLeft = Compute(ref context, node.left, sb, stack, boolMethods, out bool left);
+
+				result = left || right;
+			}
+			else
+			{
+				result = false;
+				return new ComputeResult(false, $"Cannot compare types {rightType} and {leftType}");
+			}
+
+			return ComputeResult.Combine(resultRight, resultLeft);
+		}
+
 		static ComputeResult If(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
 		{
 			var cr = Compute(ref context, node.left, sb, stack, boolMethods, out bool condition);
@@ -561,6 +671,25 @@ namespace TemplateLanguage
 				return ComputeAny(ref context, node.middle, sb, stack, true);
 			else
 				return ComputeAny(ref context, node.right, sb, stack, true);
+		}
+
+		static TemplateMethod<T> Conditional<T>(MethodContainer<NodeType, ReturnType, TemplateMethod<T>> container)
+		{
+			return (ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out T result) =>
+			{
+				var cr = Compute(ref context, node.right, sb, stack, boolMethods, out bool condition);
+				if (!cr.Ok)
+				{
+					result = default;
+					return cr;
+				}
+
+				if (condition)
+					return Compute(ref context, node.left, sb, stack, container, out result);
+
+				result = default;
+				return ComputeResult.OK;
+			};
 		}
 
 		static TemplateMethod<T> Bracket<T>(MethodContainer<NodeType, ReturnType, TemplateMethod<T>> container)

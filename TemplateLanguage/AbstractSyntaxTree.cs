@@ -31,7 +31,7 @@ namespace TemplateLanguage
 
 		// --------- STRING ---------
 
-		public void InsertString(in Token token)
+		public void InsertTextBlock(in Token token)
 		{
 			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
@@ -164,7 +164,7 @@ namespace TemplateLanguage
 			currIdx++;
 		}
 
-		public void InsertName(in Token token)
+		public void InsertString(in Token token)
 		{
 			Node.Create(ref nodeTree[currIdx++], NodeType.String, token: token);
 		}

@@ -15,6 +15,13 @@ namespace TemplateLanguage.Test
 		[TestInitialize]
 		public void Setup()
 		{
+			IModel[] models = new IModel[10];
+			for (int i = 0; i < models.Length; i++)
+			{
+				models[i] = new Model();
+				models[i].Set("i", new Parameter<float>(i));
+			}
+
 			var model2 = new Model();
 			model2.Set("shaba", new Parameter<string>("wow"));
 			model2.Set("shaba2", new Parameter<float>(25));
@@ -25,6 +32,7 @@ namespace TemplateLanguage.Test
 			model.Set("testVar3", new Parameter<bool>(false));
 			model.Set("testVar4", new Parameter<float>(7));
 			model.Set("vari", new ModelParameter(model2));
+			model.Set("en", new EnumerableParameter<IModel>(models));
 
 			stack = new ModelStack();
 			stack.Push(model);
@@ -93,9 +101,9 @@ namespace TemplateLanguage.Test
 		{
 			Assert.AreEqual("6", RunLanguage("|$testVar|", model));
 			Assert.AreEqual("slfgh", RunLanguage("|$testVar2|", model));
-			Assert.AreEqual("slfgh", RunLanguage("$testVar2", model));
+			Assert.AreEqual("slfgh ", RunLanguage("$testVar2 ", model));
 			Assert.AreEqual("False", RunLanguage("|$testVar3|", model));
-			Assert.AreEqual("wow", RunLanguage("$vari.shaba", model));
+			Assert.AreEqual("wow ", RunLanguage("$vari.shaba ", model));
 			Assert.AreEqual("1", RunLanguage("|if $testVar==6 then 1 end|", model));
 			Assert.AreEqual("1", RunLanguage("|if 6==$testVar then 1 end|", model));
 			Assert.AreEqual("30", RunLanguage("|3*(4+$testVar)|", model));
@@ -106,10 +114,10 @@ namespace TemplateLanguage.Test
 		[TestMethod]
 		public void TestAssign()
 		{
-			Assert.AreEqual("1", RunLanguage("|$a=1|$a", model));
+			Assert.AreEqual("1 ", RunLanguage("|$a=1|$a ", model));
 			Assert.AreEqual("", RunLanguage("|$testVar=6|", model));
-			Assert.AreEqual("7", RunLanguage("|$testVar=$testVar4|$testVar", model));
-			Assert.AreEqual("7  5", RunLanguage("$testVar |$testVar=5| $testVar", model));
+			Assert.AreEqual("7 ", RunLanguage("|$testVar=$testVar4|$testVar ", model));
+			Assert.AreEqual("7  5 ", RunLanguage("$testVar |$testVar=5| $testVar ", model));
 			Assert.AreEqual("56", RunLanguage("|$testVar||$testVar=6||$testVar|", model));
 		}
 
@@ -121,6 +129,17 @@ namespace TemplateLanguage.Test
 			Assert.AreEqual("", RunLanguage("$vari|$shaba2 < 5|->$shaba2<-", model));
 			Assert.AreEqual("25", RunLanguage("$vari|$shaba2 > 5|->$shaba2<-", model));
 			Assert.AreEqual("{wow}", RunLanguage("{$vari|$shaba2 > 5|->$shaba<-}", model));
+			Assert.AreEqual("6789", RunLanguage("$en|$i > 5|~>$i<~", model));
+			Assert.AreEqual("{6789}", RunLanguage("{$en|$i > 5|~>$i<~}", model));
+			Assert.AreEqual("{6 7 8 9 }", RunLanguage("{$en|$i > 5|~>$i <~}", model));
+		}
+
+		[TestMethod]
+		public void TestConditional()
+		{
+			Assert.AreEqual("wow", RunLanguage("|\"wow\" ? true|", model));
+			Assert.AreEqual("", RunLanguage("|\"wow\" ? $testVar3|", model));
+			Assert.AreEqual("14", RunLanguage("|2+3*4 ? true|", model));
 		}
 
 		public string RunLanguage(ReadOnlySpan<char> txt, IModel model)

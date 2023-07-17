@@ -42,6 +42,12 @@ namespace TemplateLanguage
 			return false;
 		}
 
+		public bool TryGet<T1>(out IEnumerable<T1> value)
+		{
+			value = default;
+			return false;
+		}
+
 		public bool TrySet<T1>(T1 value)
 		{
 			if (typeof(T) != typeof(T1))
@@ -51,6 +57,24 @@ namespace TemplateLanguage
 
 			this.value = Unsafe.As<T1, T>(ref value);
 			return true;
+		}
+	}
+
+	public static class Parameter
+	{
+		public static EnumerableParameter<T> CreateEnum<T>(IEnumerable<T> value)
+		{
+			return new EnumerableParameter<T>(value);
+		}
+
+		public static ModelParameter Create(IModel value)
+		{
+			return new ModelParameter(value);
+		}
+
+		public static Parameter<T> Create<T>(T value)
+		{
+			return new Parameter<T>(value);
 		}
 	}
 }

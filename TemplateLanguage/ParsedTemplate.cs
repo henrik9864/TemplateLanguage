@@ -22,7 +22,7 @@ namespace TemplateLanguage
     {
 		static Dictionary<EngineState, IState> stateDict = new()
 		{
-			{ EngineState.String,     new StringState() },
+			{ EngineState.TextState,  new TextState() },
 			{ EngineState.Expression, new ExpressionState() },
 			{ EngineState.Code,       new CodeState() },
 			{ EngineState.Variable,   new VariableState() },
@@ -43,7 +43,7 @@ namespace TemplateLanguage
             var ast = new AbstractSyntaxTree(nodeArr);
 
             ast.InsertStart();
-            CalculateAst(EngineState.String, ref ast);
+            CalculateAst(EngineState.TextState, ref ast);
 
 			ComputeAst(sb, ref ast, stack);
 
@@ -70,12 +70,12 @@ namespace TemplateLanguage
             Span<Node> nodeTree = ast.GetTree();
 			Span<ReturnType> returnTypes = stackalloc ReturnType[nodeTree.Length];
 
-            ast.PrintStackDepth();
-            ast.PrintNodes();
+            //ast.PrintStackDepth();
+            //ast.PrintNodes();
 
             TemplateLanguageTypeResolver.ResolveTypes(ast.GetRoot(), nodeTree, returnTypes);
 
-			ast.PrintTree(txt, returnTypes, false);
+			//ast.PrintTree(txt, returnTypes, false);
 
             var language = new TemplateLanguage(txt, nodeTree, returnTypes);
 

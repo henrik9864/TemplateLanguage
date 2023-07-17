@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TemplateLanguage
 {
@@ -14,11 +13,15 @@ namespace TemplateLanguage
 		void Set(ReadOnlySpan<char> name, IParameter parameter);
 
 		bool TryGet(ReadOnlySpan<char> name, out IParameter parameter);
+
+		IEnumerable<IParameter> GetEnumerable();
 	}
 
 	public interface IParameter
 	{
 		ReturnType GetType();
+
+		bool TryGet<T>(out IEnumerable<T> value);
 
 		bool TryGet<T>(out T value);
 

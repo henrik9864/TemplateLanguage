@@ -7,7 +7,7 @@ namespace Tokhenizer
         public readonly Range range;
         fixed uint data[8];
 
-        internal Token(Range range) : this()
+        public Token(Range range) : this()
         {
             this.range = range;
         }

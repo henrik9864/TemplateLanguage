@@ -54,7 +54,7 @@ namespace TemplateLanguage
 						if (!sm.Consume())
 							return ExitCode.Exit;
 
-						ast.InsertName(token);
+						ast.InsertString(token);
 						ast.InsertVariable();
 
 						break;

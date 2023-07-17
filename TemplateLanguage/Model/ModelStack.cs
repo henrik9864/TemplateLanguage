@@ -19,10 +19,15 @@
 			return stack[stack.Count - 1];
 		}
 
+		public IModel PeekBottom()
+		{
+			return stack[0];
+		}
+
 		public bool TryGet(ReadOnlySpan<char> name, out IParameter parameter)
 		{
-			for (int i = 0; i < stack.Count; i++)
-			{
+            for (int i = stack.Count - 1; i >= 0; i--)
+            {
 				if (stack[i].TryGet(name, out parameter))
 					return true;
 			}

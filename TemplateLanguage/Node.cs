@@ -17,6 +17,7 @@ namespace TemplateLanguage
 		CodeBlock,
 		VariableBlock,
 		AccessorBlock,
+		EnumerableAccessorBlock,
 		Bracket,
 		Filter,
 
@@ -31,6 +32,7 @@ namespace TemplateLanguage
 
 		Assign,
 		Accessor,
+		Conditional,
 
 		Variable,
 		String,
@@ -39,7 +41,9 @@ namespace TemplateLanguage
 		Else,
 		Equals,
 		Greater,
-		Less
+		Less,
+		And,
+		Or,
 	}
 
 	struct Node

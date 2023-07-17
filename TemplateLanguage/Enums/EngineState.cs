@@ -4,7 +4,7 @@
     {
         Code,
         Variable,
-        String,
+        TextState,
         Expression
     }
 }

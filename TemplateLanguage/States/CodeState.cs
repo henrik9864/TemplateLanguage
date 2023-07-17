@@ -28,6 +28,20 @@ namespace TemplateLanguage
 
 				return OnStep(ref sm, ref ast, ref token);
 			}
+			else if (token.Is(TokenType.Bracket, BracketType.String))
+			{
+				Range strRange = new Range(token.range.Start.Value + 1, token.range.End.Value + 1);
+				sm.Consume();
+
+				while (!token.Is(TokenType.Bracket, BracketType.String))
+				{
+					strRange = new Range(strRange.Start, token.range.End);
+					sm.Consume();
+				}
+
+				ast.InsertString(new Token(strRange));
+				return sm.Continue();
+			}
 			else if (token.Is(TokenType.Operator))
 			{
 				OperatorType type = token.Get<OperatorType>(1);
@@ -39,11 +53,20 @@ namespace TemplateLanguage
 					case OperatorType.Equals:
 						ast.InsertOperator(NodeType.Equals);
 						break;
+					case OperatorType.And:
+						ast.InsertOperator(NodeType.And);
+						break;
+					case OperatorType.Or:
+						ast.InsertOperator(NodeType.Or);
+						break;
 					case OperatorType.Greater:
 						ast.InsertOperator(NodeType.Greater);
 						break;
 					case OperatorType.Less:
 						ast.InsertOperator(NodeType.Less);
+						break;
+					case OperatorType.Conditional:
+						ast.InsertOperator(NodeType.Conditional);
 						break;
 					case OperatorType.If:
 						int ifIdx = 0;
@@ -104,7 +127,7 @@ namespace TemplateLanguage
 			}
 			else if (token.Is(TokenType.String))
 			{
-				ast.InsertName(token);
+				ast.InsertString(token);
 			}
 
 			return sm.Continue();

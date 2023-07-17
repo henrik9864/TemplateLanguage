@@ -1,1 +1,22 @@
-﻿$vari|$shaba > 5|->test<-
+﻿using EnCS;
+using System;
+using System.Runtime.InteropServices;|$a=0|
+
+namespace $namespace
+{
+	[StructLayout(LayoutKind.Explicit)]
+	public sealed class $name
+	{
+		$members|$name == "array"|~>
+		[FieldOffset($a)]
+		public | "readonly" ? $isReadonly | FixedArray<$type> $name = new FixedArray<$type>($length);|$a = $a + $intSize + $size * ($length - 1)|
+
+		[FieldOffset($a)]
+		private $type |$name|_stop = default;<~
+
+		$members|$name == "field"|~>
+		[FieldOffset($a)]
+		public | "readonly" ? $isReadonly | $type |$name|;
+		|$a = $a + $size|<~
+	}
+}
