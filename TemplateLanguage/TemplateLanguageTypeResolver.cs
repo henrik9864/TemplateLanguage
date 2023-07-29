@@ -1,4 +1,6 @@
-﻿namespace TemplateLanguage
+﻿using System;
+
+namespace TemplateLanguage
 {
 	[Flags]
 	public enum ReturnType

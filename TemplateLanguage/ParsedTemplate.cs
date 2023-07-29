@@ -1,4 +1,6 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -14,7 +16,11 @@ namespace TemplateLanguage
 
 	internal ref struct TemplateState
 	{
-		public ref Token token;
+#if NETSTANDARD2_0
+        public Token token;
+#else
+        public ref Token token;
+#endif
 		public AbstractSyntaxTree ast;
 	}
 
@@ -140,7 +146,7 @@ namespace TemplateLanguage
             TokenEnumerable.Enumerator enumerator = r.GetEnumerator();
             while (enumerator.MoveNext())
             {
-                sb.Append(enumerator.Current.GetSpan(str.Span));
+                sb.Append(enumerator.Current.GetSpan(str.Span).ToString());
 
                 SetColor(enumerator.Current);
                 
@@ -156,26 +162,26 @@ namespace TemplateLanguage
             switch (token.Get<TokenType>(0))
             {
                 case TokenType.Bracket:
-                    Console.WriteLine($"{token.Get<TokenType>(0)}-{token.Get<BracketType>(1)}: {token.GetSpan(str)}");
+                    Console.WriteLine($"{token.Get<TokenType>(0)}-{token.Get<BracketType>(1)}: {token.GetSpan(str).ToString()}");
                     break;
                 case TokenType.Operator:
-                    Console.WriteLine($"{token.Get<TokenType>(0)}-{token.Get<OperatorType>(1)}: {token.GetSpan(str)}");
+                    Console.WriteLine($"{token.Get<TokenType>(0)}-{token.Get<OperatorType>(1)}: {token.GetSpan(str).ToString()}");
                     break;
                 case TokenType.Snippet:
-                    Console.WriteLine($"{token.Get<TokenType>(0)}-{token.Get<int>(1)}: {token.GetSpan(str)}");
+                    Console.WriteLine($"{token.Get<TokenType>(0)}-{token.Get<int>(1)}: {token.GetSpan(str).ToString()}");
                     break;
                 case TokenType.Number:
-                    Console.WriteLine($"{token.Get<TokenType>(0)}-{token.Get<NumberType>(1)}: {token.GetSpan(str)}");
+                    Console.WriteLine($"{token.Get<TokenType>(0)}-{token.Get<NumberType>(1)}: {token.GetSpan(str).ToString()}");
                     break;
                 case TokenType.Whitespace:
                     if (token.GetSpan(str).Contains('\r'))
                         return;
 
-                    Console.WriteLine($"{token.Get<TokenType>(0)}: '{token.GetSpan(str)}'");
+                    Console.WriteLine($"{token.Get<TokenType>(0)}: '{token.GetSpan(str).ToString()}'");
                     break;
                 case TokenType.String:
                 case TokenType.LooseString:
-                    Console.WriteLine($"{token.Get<TokenType>(0)}: '{token.GetSpan(str)}'");
+                    Console.WriteLine($"{token.Get<TokenType>(0)}: '{token.GetSpan(str).ToString()}'");
                     break;
                 default:
                     break;

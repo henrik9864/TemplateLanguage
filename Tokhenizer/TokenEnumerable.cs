@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 
 namespace Tokhenizer
@@ -22,20 +23,41 @@ namespace Tokhenizer
 
         public unsafe ref struct Enumerator
         {
-            public readonly ref Token Current => ref current;
+#if NETSTANDARD2_0
+            public unsafe readonly ref Token Current
+            {
+                get
+                {
+                    fixed(Token* pCurrent = &current)
+                    {
+                        return ref pCurrent[0];
+                    }
+                }
+            }
+#else
+			public readonly ref Token Current => ref current;
+#endif
 
             Lexer lexer;
             ReadOnlySpan<char> text;
             TokenRule[] rules;
 
+#if NETSTANDARD2_0
+            Token current;
+#else
             ref Token current;
+#endif
 
             public Enumerator(Lexer lexer, TokenRule[] rules, ReadOnlySpan<char> text, ref Token token)
             {
                 this.lexer = lexer;
                 this.rules = rules;
                 this.text = text;
-                this.current = ref token;
+#if NETSTANDARD2_0
+				this.current = token;
+#else
+				this.current = ref token;
+#endif
             }
 
             public bool MoveNext()

@@ -1,4 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using TemplateLanguage;
 
 namespace Tokhenizer
@@ -31,16 +34,16 @@ namespace Tokhenizer
 			if (lexer.Current == ')')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.Close);
 
-			if (lexer.IsString("->"))
+			if (lexer.IsString("->".AsSpan()))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Bracket, BracketType.AccessorOpen);
 
-			if (lexer.IsString("<-"))
+			if (lexer.IsString("<-".AsSpan()))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Bracket, BracketType.AccessorClose);
 
-			if (lexer.IsString("~>"))
+			if (lexer.IsString("~>".AsSpan()))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Bracket, BracketType.EnumerableAccessorOpen);
 
-			if (lexer.IsString("<~"))
+			if (lexer.IsString("<~".AsSpan()))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Bracket, BracketType.EnumerableAccessorClose);
 
 			return lexer.Fail(out token);
@@ -48,40 +51,40 @@ namespace Tokhenizer
 
         bool OperatorRule(ref Lexer lexer, out Token token)
         {
-            if (lexer.IsString("=="))
+            if (lexer.IsString("==".AsSpan()))
                 return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Equals);
 
-            if (lexer.IsString("&&"))
+            if (lexer.IsString("&&".AsSpan()))
                 return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.And);
 
-            if (lexer.IsString("||"))
+            if (lexer.IsString("||".AsSpan()))
                 return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Or);
 
 			if (lexer.Current == '<')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Less);
 
-			if (lexer.IsString("<="))
+			if (lexer.IsString("<=".AsSpan()))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.LessEquals);
 
 			if (lexer.Current == '>')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Greater);
 
-			if (lexer.IsString(">="))
+			if (lexer.IsString(">=".AsSpan()))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.GreaterEquals);
 
-			if (lexer.IsString("elseif"))
+			if (lexer.IsString("elseif".AsSpan()))
 				return lexer.ConsumeAndCreateToken(6, out token, TokenType.Operator, OperatorType.Elseif);
 
-			if (lexer.IsString("if"))
+			if (lexer.IsString("if".AsSpan()))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.If);
 
-			if (lexer.IsString("then"))
+			if (lexer.IsString("then".AsSpan()  ))
 				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Operator, OperatorType.Then);
 
-			if (lexer.IsString("else"))
+			if (lexer.IsString("else".AsSpan()))
 				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Operator, OperatorType.Else);
 
-			if (lexer.IsString("end"))
+			if (lexer.IsString("end".AsSpan()))
 				return lexer.ConsumeAndCreateToken(3, out token, TokenType.Operator, OperatorType.End);
 
 			if (lexer.Current == '$')
@@ -144,10 +147,10 @@ namespace Tokhenizer
 
         bool BoolRule(ref Lexer lexer, out Token token)
         {
-			if (lexer.IsString("true"))
+			if (lexer.IsString("true".AsSpan()))
 				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Bool);
 
-			if (lexer.IsString("false"))
+			if (lexer.IsString("false".AsSpan()))
 				return lexer.ConsumeAndCreateToken(5, out token, TokenType.Bool);
 
 			return lexer.Fail(out token);
@@ -158,7 +161,7 @@ namespace Tokhenizer
 			if (lexer.Current == '\n')
 				return lexer.ConsumeAndCreateToken(1, out token, TokenType.NewLine);
 
-			if (lexer.IsString(Environment.NewLine))
+			if (lexer.IsString(Environment.NewLine.AsSpan()))
 				return lexer.ConsumeAndCreateToken(Environment.NewLine.Length, out token, TokenType.NewLine);
 
 			return lexer.Fail(out token);
@@ -181,6 +184,8 @@ namespace Tokhenizer
                 lexer.Current == ']' || 
                 lexer.Current == '[' || 
                 lexer.Current == '_' || 
+                lexer.Current == ',' || 
+                lexer.Current == '!' || 
                 lexer.Current == ';'))
 				lexer.Consume();
 

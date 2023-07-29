@@ -1,4 +1,6 @@
-﻿using System.Net.Http.Headers;
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 
 namespace Tokhenizer
@@ -21,7 +23,7 @@ namespace Tokhenizer
             }
         }
 
-        public readonly char this[int index]
+        public char this[int index]
         {
             get
             {
@@ -51,7 +53,7 @@ namespace Tokhenizer
             span += characters;
         }
 
-        public readonly char Peek(int index)
+        public char Peek(int index)
         {
             if (span + index >= text.Length)
                 return char.MinValue;
@@ -74,14 +76,14 @@ namespace Tokhenizer
 
         public bool Fail(out Token token)
         {
-            Unsafe.SkipInit(out token);
-            return false;
+			Unsafe.SkipInit(out token);
+			return false;
         }
 
 		public bool TryCreateToken<T1>(out Token token, in T1 item1) where T1 : unmanaged
         {
-            Unsafe.SkipInit(out token);
-            if (span > text.Length || index == span)
+			Unsafe.SkipInit(out token);
+			if (span > text.Length || index == span)
                 return false;
 
             token = new Token(index..span);
@@ -92,8 +94,8 @@ namespace Tokhenizer
 
         public bool TryCreateToken<T1, T2>(out Token token, in T1 item1, in T2 item2) where T1 : unmanaged where T2 : unmanaged
         {
-            Unsafe.SkipInit(out token);
-            if (index == span)
+			Unsafe.SkipInit(out token);
+			if (index == span)
                 return false;
 
             token = new Token(index..span);

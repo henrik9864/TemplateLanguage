@@ -1,4 +1,7 @@
-﻿namespace TemplateLanguage
+﻿using System;
+using System.Collections.Generic;
+
+namespace TemplateLanguage
 {
 	public class ModelStack
 	{

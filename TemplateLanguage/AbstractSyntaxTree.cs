@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using Tokhenizer;
 
 namespace TemplateLanguage
@@ -257,7 +259,7 @@ namespace TemplateLanguage
 
 			if (nodeRef.nodeType == NodeType.Integer)
 			{
-				nodeInfo = $"{nodeRef.nodeType} - I: {node} V: {nodeRef.token.GetSpan(txt)} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
+				nodeInfo = $"{nodeRef.nodeType} - I: {node} V: {nodeRef.token.GetSpan(txt).ToString()} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
 			}
 			else if (nodeRef.nodeType == NodeType.String || nodeRef.nodeType == NodeType.TextBlock)
 			{
@@ -268,7 +270,7 @@ namespace TemplateLanguage
 				nodeInfo = $"{nodeRef.nodeType} - I: {node} L: {nodeRef.left} R: {nodeRef.right} T: {returnTypes[node]}";
 			}
 
-			var line = $"{new string('│', int.Max(indent - 1, 0))}{(indent == 0 ? "" : "├")}{nodeInfo}";
+			var line = $"{new string('│', Math.Max(indent - 1, 0))}{(indent == 0 ? "" : "├")}{nodeInfo}";
 			Console.WriteLine(line);
 
 			if (visited.Contains(node))

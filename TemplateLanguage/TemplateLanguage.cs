@@ -1,4 +1,6 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Reflection;
@@ -176,7 +178,7 @@ namespace TemplateLanguage
 		static ComputeResult TextBlock(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
 		{
 			var result = Compute(ref context, node.right, sb, stack);
-			sb.Append(node.token.GetSpan(context.txt));
+			sb.Append(node.token.GetSpan(context.txt).ToString());
 
 			return result;
 		}
@@ -305,7 +307,7 @@ namespace TemplateLanguage
 						return new ComputeResult(false, $"Assign does not support {rightType}");
 				}
 
-                stack.PeekBottom().Set(varName, var);
+                stack.PeekBottom().Set(varName.AsSpan(), var);
 			}
 
 			if (var.GetType() != rightType)
@@ -360,31 +362,39 @@ namespace TemplateLanguage
 
 		static ComputeResult Float(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out float result)
 		{
+#if NETSTANDARD2_0
+			bool r = float.TryParse(node.token.GetSpan(context.txt).ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out result);
+#else
 			bool r = float.TryParse(node.token.GetSpan(context.txt), System.Globalization.CultureInfo.InvariantCulture, out result);
+#endif
 			
 			if (!r)
-				return new ComputeResult(r, $"Cannot parse {node.token.GetSpan(context.txt)} as a float");
+				return new ComputeResult(r, $"Cannot parse {node.token.GetSpan(context.txt).ToString()} as a float");
 
 			return ComputeResult.OK;
 		}
 
 		static ComputeResult Integer(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out float result)
 		{
+#if NETSTANDARD2_0
+			bool r = int.TryParse(node.token.GetSpan(context.txt).ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out int integer);
+#else
 			bool r = int.TryParse(node.token.GetSpan(context.txt), System.Globalization.CultureInfo.InvariantCulture, out int integer);
+#endif
 			result = integer;
 
 			if (!r)
-				return new ComputeResult(r, $"Cannot parse {node.token.GetSpan(context.txt)} as an integer");
+				return new ComputeResult(r, $"Cannot parse {node.token.GetSpan(context.txt).ToString()} as an integer");
 
 			return ComputeResult.OK;
 		}
 
 		static ComputeResult Bool(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack, out bool result)
 		{
-			bool r = bool.TryParse(node.token.GetSpan(context.txt), out result);
+			bool r = bool.TryParse(node.token.GetSpan(context.txt).ToString(), out result);
 
 			if (!r)
-				return new ComputeResult(r, $"Cannot parse {node.token.GetSpan(context.txt)} as a bool");
+				return new ComputeResult(r, $"Cannot parse {node.token.GetSpan(context.txt).ToString()} as a bool");
 
 			return ComputeResult.OK;
 		}
@@ -435,7 +445,7 @@ namespace TemplateLanguage
 		{
 			var resultRight = Compute(ref context, node.right, sb, stack, strMethods, out string varName);
 
-			if (!stack.TryGet(varName, out result))
+			if (!stack.TryGet(varName.AsSpan(), out result))
 				return new ComputeResult(false, $"Variable with name {varName} does not exist");
 
 			return resultRight;
@@ -450,7 +460,7 @@ namespace TemplateLanguage
 				return resultRight;
 			}
 
-			if (!stack.TryGet(varName, out IParameter var))
+			if (!stack.TryGet(varName.AsSpan(), out IParameter var))
 			{
 				result = default;
 				return new ComputeResult(false, $"Variable with name {varName} does not exist");
@@ -467,7 +477,7 @@ namespace TemplateLanguage
 			var resultRight = Compute(ref context, node.right, sb, stack, strMethods, out string propName);
 			var resultLeft = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter var);
 
-			if (!var.TryGet(propName, out result))
+			if (!var.TryGet(propName.AsSpan(), out result))
 				return new ComputeResult(false, $"Cannot access prop {propName}");
 			
 			return ComputeResult.Combine(resultRight, resultLeft);
@@ -478,7 +488,7 @@ namespace TemplateLanguage
 			var resultRight = Compute(ref context, node.right, sb, stack, strMethods, out string propName);
 			var resultLeft = Compute(ref context, node.left, sb, stack, variableMethods, out IParameter var);
 
-			if (!var.TryGet(propName, out IParameter param))
+			if (!var.TryGet(propName.AsSpan(), out IParameter param))
 			{
 				result = default;
 				return new ComputeResult(false, $"Cannot access prop {propName}");
