@@ -5,8 +5,8 @@ using System.Text;
 using TemplateLanguage;
 using Tokhenizer;
 
-TemplateTest.Run();
-return;
+//TemplateTest.Run();
+//return;
 /*
 */
 
@@ -63,7 +63,7 @@ model.Set("members", Parameter.CreateEnum(members));
 var stack = new ModelStack();
 stack.Push(model);
 
-var str = File.ReadAllText("simpler.tcs").AsMemory();
+var str = File.ReadAllText("simple.tcs").AsMemory();
 TemplateDebugger.Parse(str);
 
 TemplateRules templateRules = new TemplateRules();

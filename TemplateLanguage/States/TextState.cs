@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using Tokhenizer;
 
 namespace TemplateLanguage
@@ -25,6 +26,10 @@ namespace TemplateLanguage
 				ast.BracketClose();
 
                 return OnStep(ref sm, ref ast, ref token);
+			}
+			else if (token.Is(TokenType.Operator, OperatorType.NewLine))
+			{
+				ast.InsertNewLineBlock();
 			}
 			else
 			{
@@ -73,10 +78,24 @@ namespace TemplateLanguage
 			{
 				ast.InsertOperator(NodeType.EnumerableAccessorBlock);
 				ast.BracketOpen();
+				int repeatIdx = ast.InsertOperator(NodeType.RepeatCodeBlock);
+				ast.BracketOpen();
 				sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
 				ast.BracketClose();
 
 				sm.Consume();
+
+                if (token.Is(TokenType.Bracket, BracketType.EnumerableAccessorOpen))
+				{
+                    ast.SetLeft(repeatIdx);
+					ast.BracketOpen();
+					sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
+					ast.BracketClose();
+					sm.Consume();
+				}
+
+				ast.BracketClose();
+
 				return sm.PopState();
 			}
 			else if (token.Is(TokenType.Bracket, BracketType.Code))

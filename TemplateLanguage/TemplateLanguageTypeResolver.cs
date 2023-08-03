@@ -48,7 +48,13 @@ namespace TemplateLanguage
 				case NodeType.TextBlock:
 					returnTypes[root] = ReturnType.None;
 					break;
+				case NodeType.NewLineBlock:
+					returnTypes[root] = ReturnType.None;
+					break;
 				case NodeType.CodeBlock:
+					returnTypes[root] = ReturnType.None;
+					break;
+				case NodeType.RepeatCodeBlock:
 					returnTypes[root] = ReturnType.None;
 					break;
 				case NodeType.VariableBlock:

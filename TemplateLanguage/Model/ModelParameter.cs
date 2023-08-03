@@ -15,27 +15,28 @@ namespace TemplateLanguage
 
 		public bool TryGet<T>(out IEnumerable<T> value)
 		{
-			if (typeof(T) != typeof(IParameter))
+			if (typeof(T) == typeof(IParameter) || typeof(IParameter).IsAssignableFrom(typeof(T)))
 			{
-				value = default;
-				return false;
+				var enumerable = this.value.GetEnumerable();
+				value = Unsafe.As<IEnumerable<IParameter>, IEnumerable<T>>(ref enumerable);
+				return true;
 			}
 
-			var enumerable = this.value.GetEnumerable();
-			value = Unsafe.As<IEnumerable<IParameter>, IEnumerable<T>>(ref enumerable);
-			return true;
+
+			value = default;
+			return false;
 		}
 
 		public bool TryGet<T>(out T value)
 		{
-			if (typeof(T) != typeof(IModel))
+			if (typeof(T) == typeof(IModel) || typeof(IModel).IsAssignableFrom(typeof(T)))
 			{
-				value = default;
-				return false;
+				value = Unsafe.As<IModel, T>(ref this.value);
+				return true;
 			}
 
-			value = Unsafe.As<IModel, T>(ref this.value);
-			return true;
+			value = default;
+			return false;
 		}
 
 		public bool TryGet(ReadOnlySpan<char> name, out IParameter parameter)
@@ -45,13 +46,13 @@ namespace TemplateLanguage
 
 		public bool TrySet<T>(T value)
 		{
-			if (typeof(T) != typeof(IModel))
+			if (typeof(T) == typeof(IModel) || typeof(IModel).IsAssignableFrom(typeof(T)))
 			{
-				return false;
+				this.value = Unsafe.As<T, IModel>(ref value);
+				return true;
 			}
 
-			this.value = Unsafe.As<T, IModel>(ref value);
-			return true;
+			return false;
 		}
 
 		ReturnType IParameter.GetType()
@@ -71,26 +72,26 @@ namespace TemplateLanguage
 
 		public bool TryGet<T1>(out IEnumerable<T1> value)
 		{
-			if (typeof(T1) != typeof(T))
+			if (typeof(T1) == typeof(T) || typeof(T).IsAssignableFrom(typeof(T1)))
 			{
-				value = default;
-				return false;
+				value = Unsafe.As<IEnumerable<T>, IEnumerable<T1>>(ref this.value);
+				return true;
 			}
 
-			value = Unsafe.As<IEnumerable<T>, IEnumerable<T1>>(ref this.value);
-			return true;
+			value = default;
+			return false;
 		}
 
 		public bool TryGet<T1>(out T1 value)
 		{
-			if (typeof(T1) != typeof(IEnumerable<T>))
+			if (typeof(T1) == typeof(IEnumerable<T>) || typeof(IEnumerable<T>).IsAssignableFrom(typeof(T1)))
 			{
-				value = default;
-				return false;
+				value = Unsafe.As<IEnumerable<T>, T1>(ref this.value);
+				return true;
 			}
 
-			value = Unsafe.As<IEnumerable<T>, T1>(ref this.value);
-			return true;
+			value = default;
+			return false;
 		}
 
 		public bool TryGet(ReadOnlySpan<char> name, out IParameter parameter)
@@ -101,14 +102,13 @@ namespace TemplateLanguage
 
 		public bool TrySet<T1>(T1 value)
 		{
-			if (typeof(T1) != typeof(IEnumerable<T>))
+			if (typeof(T1) == typeof(IEnumerable<T>) || typeof(IEnumerable<T>).IsAssignableFrom(typeof(T1)))
 			{
-				value = default;
-				return false;
+				this.value = Unsafe.As<T1, IEnumerable<T>>(ref value);
+				return true;
 			}
 
-			this.value = Unsafe.As<T1, IEnumerable<T>>(ref value);
-			return true;
+			return false;
 		}
 
 		ReturnType IParameter.GetType()

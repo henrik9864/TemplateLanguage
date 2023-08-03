@@ -28,14 +28,14 @@ namespace TemplateLanguage
 
 		public bool TryGet<T1>(out T1 value)
 		{
-			if (typeof(T) != typeof(T1))
+			if (typeof(T) == typeof(T1) || typeof(T).IsAssignableFrom(typeof(T1)))
 			{
-				value = default;
-				return false;
+				value = Unsafe.As<T, T1>(ref this.value);
+				return true;
 			}
 
-			value = Unsafe.As<T, T1>(ref this.value);
-			return true;
+			value = default;
+			return false;
 		}
 
 		public bool TryGet(ReadOnlySpan<char> name, out IParameter value)
@@ -52,13 +52,13 @@ namespace TemplateLanguage
 
 		public bool TrySet<T1>(T1 value)
 		{
-			if (typeof(T) != typeof(T1))
+			if (typeof(T) == typeof(T1) || typeof(T).IsAssignableFrom(typeof(T1)))
 			{
-				return false;
+				this.value = Unsafe.As<T1, T>(ref value);
+				return true;
 			}
 
-			this.value = Unsafe.As<T1, T>(ref value);
-			return true;
+			return false;
 		}
 	}
 

@@ -46,6 +46,19 @@ namespace TemplateLanguage
 			currIdx++;
 		}
 
+		public void InsertNewLineBlock()
+		{
+			int rootIdx = currRoot.Peek();
+			ref Node rootNode = ref nodeTree[rootIdx];
+
+			int right = rootNode.right == currIdx ? -1 : rootNode.right;
+
+			Node.Create(ref nodeTree[currIdx], NodeType.NewLineBlock, right: right);
+			rootNode.right = currIdx;
+
+			currIdx++;
+		}
+
 		public void InsertVariableBlock(in Token token)
 		{
 			int rootIdx = currRoot.Peek();
@@ -116,7 +129,7 @@ namespace TemplateLanguage
 
 		// --------- EXPRESSION ---------
 
-		public void InsertOperator(NodeType type)
+		public int InsertOperator(NodeType type)
 		{
 			int rootIdx = currRoot.Peek();
 			ref Node rootNode = ref nodeTree[rootIdx];
@@ -128,6 +141,7 @@ namespace TemplateLanguage
 			rootNode.middle = -1;
 
 			currIdx++;
+			return currIdx - 1;
 		}
 
 		public void InsertNumber(in Token token, NodeType type)

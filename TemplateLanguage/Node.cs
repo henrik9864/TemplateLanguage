@@ -18,6 +18,8 @@ namespace TemplateLanguage
 		VariableBlock,
 		AccessorBlock,
 		EnumerableAccessorBlock,
+		RepeatCodeBlock,
+		NewLineBlock,
 		Bracket,
 		Filter,
 

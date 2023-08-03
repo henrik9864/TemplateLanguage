@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -77,13 +78,15 @@ namespace TemplateLanguage
 		static MethodContainer<NodeType, ReturnType, TemplateMethod> voideMethods = new()
 		{
 			// -------- Start/Bracket --------
-			{ NodeType.Start, ReturnType.Any, Start },
-			{ NodeType.Bracket, ReturnType.Any, Start },
+			{ NodeType.Start, ReturnType.Any, ComputeRight },
+			{ NodeType.Bracket, ReturnType.Any, ComputeRight },
 			{ NodeType.End, ReturnType.Any, End },
 
 			// ------ Blocks ------
 			{ NodeType.TextBlock, ReturnType.Any, TextBlock },
+			{ NodeType.NewLineBlock, ReturnType.Any, NewLineBlock },
 			{ NodeType.CodeBlock, ReturnType.Any, ReturnType.Any, CodeBlock },
+			{ NodeType.RepeatCodeBlock, ReturnType.Any, ReturnType.None | ReturnType.None, ComputeRight },
 			{ NodeType.NewLine, ReturnType.Any, ReturnType.Any, NewLine },
 			{ NodeType.AccessorBlock, ReturnType.Any, ReturnType.Unknown | ReturnType.Bool, ReturnType.Variable, AccessorBlock },
 			{ NodeType.EnumerableAccessorBlock, ReturnType.Any, ReturnType.Unknown | ReturnType.Bool, ReturnType.Variable, EnumerableAccessorBlock },
@@ -177,8 +180,16 @@ namespace TemplateLanguage
 
 		static ComputeResult TextBlock(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
 		{
-			var result = Compute(ref context, node.right, sb, stack);
+            var result = Compute(ref context, node.right, sb, stack);
 			sb.Append(node.token.GetSpan(context.txt).ToString());
+
+			return result;
+		}
+
+		static ComputeResult NewLineBlock(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
+		{
+            var result = Compute(ref context, node.right, sb, stack);
+			sb.Append("\n");
 
 			return result;
 		}
@@ -232,6 +243,7 @@ namespace TemplateLanguage
 			if (!parameter.TryGet(out IEnumerable<IModel> models))
 				return new ComputeResult(false, "Variable is not an enumerable model");
 
+			IModel last = models.Last();
             foreach (IModel model in models)
 			{
                 ReturnType middleType = GetType(ref context, node.middle);
@@ -249,7 +261,19 @@ namespace TemplateLanguage
 				}
 
 				stack.Push(model);
+
 				var resultRight = ComputeAny(ref context, node.right, sb, stack, appendResult: true);
+                if (model != last)
+				{
+					// TODO: Improve
+                    ref readonly Node bracketNode = ref context.nodes[node.right];
+                    ref readonly Node rightRightNode = ref context.nodes[bracketNode.right];
+					var resultSeparator = ComputeAny(ref context, rightRightNode.left, sb, stack, appendResult: true);
+
+					if (!resultSeparator.Ok)
+						return resultSeparator;
+				}
+
 				stack.Pop();
 
                 if (!resultRight.Ok)
@@ -350,10 +374,8 @@ namespace TemplateLanguage
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 
-		static ComputeResult Start(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
-		{
-			return Compute(ref context, node.right, sb, stack);
-		}
+		static ComputeResult ComputeRight(ref TemplateContext context, in Node node, StringBuilder sb, ModelStack stack)
+		 => Compute(ref context, node.right, sb, stack);
 
 		static ComputeResult End(ref TemplateContext context, in Node nodeIdx, StringBuilder sb, ModelStack stack)
 		{

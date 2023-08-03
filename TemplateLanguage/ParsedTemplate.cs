@@ -88,12 +88,15 @@ namespace TemplateLanguage
 			var result = language.Compute(ast.GetRoot(), sb, stack);
             if (!result.Ok)
             {
+                string errorString = "Errors!: \n";
+
                 for (int i = 0; i < result.Errors.Count; i++)
                 {
                     Console.WriteLine($"Error at line {result.Lines[i]}\n\t{result.Errors[i]}");
+                    errorString += result.Errors[i].ToString() + "\n";
                 }
 
-                throw new Exception("Errors!");
+                throw new Exception(errorString);
             }
 		}
 

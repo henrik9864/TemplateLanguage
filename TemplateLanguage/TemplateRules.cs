@@ -17,7 +17,7 @@ namespace Tokhenizer
 
         public TokenEnumerable GetEnumerable(ReadOnlySpan<char> text)
         {
-            return new TokenEnumerable(text, BracketRule, NumberRule, BoolRule, OperatorRule, NewLineRule, SnippetRule, WhitespaceRule, StringRule);
+            return new TokenEnumerable(text, BracketRule, NumberRule, BoolRule, OperatorRule, NewLineRule, SnippetRule, WhitespaceRule, StringRule, LooseString);
         }
 
         bool BracketRule(ref Lexer lexer, out Token token)
@@ -111,6 +111,9 @@ namespace Tokhenizer
 			if (lexer.Current == '.')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Accessor);
 
+			if (lexer.IsString("\\n".AsSpan()))
+				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.NewLine);
+
 			return lexer.Fail(out token);
         }
 
@@ -177,19 +180,27 @@ namespace Tokhenizer
 
         bool StringRule(ref Lexer lexer, out Token token)
         {
-            while (!lexer.IsEnd() &&
-                (char.IsLetterOrDigit(lexer.Current) ||
-                lexer.Current == '{' ||
-                lexer.Current == '}' || 
-                lexer.Current == ']' || 
-                lexer.Current == '[' || 
-                lexer.Current == '_' || 
-                lexer.Current == ',' || 
-                lexer.Current == '!' || 
-                lexer.Current == ';'))
+            while (!lexer.IsEnd() && char.IsLetterOrDigit(lexer.Current))
 				lexer.Consume();
 
 			return lexer.TryCreateToken(out token, TokenType.String);
         }
-    }
+
+		bool LooseString(ref Lexer lexer, out Token token)
+		{
+			while (!lexer.IsEnd() &&
+				(lexer.Current == '{' ||
+				lexer.Current == '}' ||
+				lexer.Current == ']' ||
+				lexer.Current == '[' ||
+				lexer.Current == '_' ||
+				lexer.Current == ',' ||
+				lexer.Current == '!' ||
+				lexer.Current == ':' ||
+				lexer.Current == ';'))
+				lexer.Consume();
+
+			return lexer.TryCreateToken(out token, TokenType.String);
+		}
+	}
 }

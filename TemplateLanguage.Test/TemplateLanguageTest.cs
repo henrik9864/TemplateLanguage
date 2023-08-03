@@ -41,7 +41,7 @@ namespace TemplateLanguage.Test
 		[TestMethod]
 		public void TestString()
 		{
-			Assert.AreEqual("", RunLanguage("||", model));
+			Assert.AreEqual("", RunLanguage("| |", model));
 			Assert.AreEqual("2+3", RunLanguage("2+3", model));
 			Assert.AreEqual("if true then 1 end", RunLanguage("if true then 1 end", model));
 			Assert.AreEqual("lmao 19.5123", RunLanguage("lmao |3*(4+2.5)|123", model));

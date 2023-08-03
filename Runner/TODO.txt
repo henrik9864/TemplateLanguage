@@ -1,4 +1,10 @@
 Improve assign variable creation
-Loose string
 Rework node -> ast states
 Fix int float debacle
+Remove line with code in it(enumerator mabye only)
+Rework lexer node creation
+Imrpove enum separator
+Problem with or and code bracket
+Add snippet functionality
+	Can be used for newline
+	Mabye extent to some sort of resource system
