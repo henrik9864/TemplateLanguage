@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using TemplateLanguage;
 
-namespace Tokhenizer
+namespace LightLexer
 {
     public class TemplateRules
     {

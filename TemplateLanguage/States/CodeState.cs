@@ -1,5 +1,5 @@
 ﻿using System;
-using Tokhenizer;
+using LightLexer;
 
 namespace TemplateLanguage
 {

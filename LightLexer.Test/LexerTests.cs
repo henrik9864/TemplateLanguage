@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 
-namespace Tokhenizer.Test
+namespace LightLexer.Test
 {
     public class LexerTests
     {

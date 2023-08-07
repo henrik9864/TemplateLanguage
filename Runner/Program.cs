@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using TemplateLanguage;
-using Tokhenizer;
+using LightLexer;
 
 namespace Runner
 {

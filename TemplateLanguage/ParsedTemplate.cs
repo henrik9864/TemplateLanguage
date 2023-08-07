@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Tokhenizer;
+using LightLexer;
 
 namespace TemplateLanguage
 {

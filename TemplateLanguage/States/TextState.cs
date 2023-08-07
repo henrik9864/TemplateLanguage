@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Text;
-using Tokhenizer;
+using LightLexer;
 
 namespace TemplateLanguage
 {

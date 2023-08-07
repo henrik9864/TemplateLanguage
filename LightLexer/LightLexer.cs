@@ -1,9 +1,323 @@
-﻿// https://github.com/dotnet/runtime/blob/419e949d258ecee4c40a460fb09c66d974229623/src/libraries/System.Private.CoreLib/src/System/Index.cs
+﻿using System;
+using System.Buffers;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Text;
+
+namespace LightLexer
+{
+	public delegate bool TokenRule(ref Lexer lexer, out Token token);
+
+	public ref struct Lexer
+	{
+		public char Current
+		{
+			get
+			{
+				return Peek(0);
+			}
+		}
+
+		public int Index
+		{
+			get
+			{
+				return index;
+			}
+		}
+
+		public char this[int index]
+		{
+			get
+			{
+				return Peek(index);
+			}
+		}
+
+		ReadOnlySpan<char> text;
+
+		int index;
+		int span;
+
+		public Lexer(ReadOnlySpan<char> text, int start)
+		{
+			this.text = text;
+			this.index = start;
+			this.span = start;
+		}
+
+		public void Consume()
+		{
+			span++;
+		}
+
+		public void Consume(int characters)
+		{
+			span += characters;
+		}
+
+		public char Peek(int index)
+		{
+			if (span + index >= text.Length)
+				return char.MinValue;
+
+			return text[span + index];
+		}
+
+		public bool IsEnd()
+		{
+			return span >= text.Length;
+		}
+
+		public bool IsString(ReadOnlySpan<char> str)
+		{
+			if (span + str.Length > text.Length)
+				return false;
+
+			return text.Slice(span, str.Length).SequenceEqual(str);
+		}
+
+		public bool Fail(out Token token)
+		{
+			Unsafe.SkipInit(out token);
+			return false;
+		}
+
+		public bool TryCreateToken<T1>(out Token token, in T1 item1) where T1 : unmanaged
+		{
+			Unsafe.SkipInit(out token);
+			if (span > text.Length || index == span)
+				return false;
+
+			token = new Token(index..span);
+			token.Get<T1>(0) = item1;
+			Reset();
+			return true;
+		}
+
+		public bool TryCreateToken<T1, T2>(out Token token, in T1 item1, in T2 item2) where T1 : unmanaged where T2 : unmanaged
+		{
+			Unsafe.SkipInit(out token);
+			if (index == span)
+				return false;
+
+			token = new Token(index..span);
+			token.Get<T1>(0) = item1;
+			token.Get<T2>(1) = item2;
+			Reset();
+			return true;
+		}
+
+		void Reset()
+		{
+			index = span;
+		}
+	}
+
+	public unsafe struct Token
+	{
+		public readonly Range range;
+		fixed uint data[8];
+
+		public Token(Range range) : this()
+		{
+			this.range = range;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ref T Get<T>(int slot) where T : unmanaged
+		{
+#if ERROR_CHECK
+        if (slot < 0 || slot >= 8)
+            throw new IndexOutOfRangeException();
+
+        if (sizeof(T) != sizeof(uint))
+            throw new Exception();
+#endif
+
+			return ref Unsafe.As<uint, T>(ref data[slot]);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void SetFlag<T>(int slot, in T value) where T : unmanaged
+		{
+#if ERROR_CHECK
+            if (slot < 0 || slot >= 8)
+                throw new IndexOutOfRangeException();
+
+            if (sizeof(T) != sizeof(uint))
+                throw new Exception();
+#endif
+
+			data[slot] |= Unsafe.As<T, uint>(ref Unsafe.AsRef(value));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void RemoveFlag<T>(int slot, in T value) where T : unmanaged
+		{
+#if ERROR_CHECK
+            if (slot < 0 || slot >= 8)
+                throw new IndexOutOfRangeException();
+
+            if (sizeof(T) != sizeof(uint))
+                throw new Exception();
+#endif
+
+			data[slot] = data[slot] & ~Unsafe.As<T, uint>(ref Unsafe.AsRef(value));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Is<T>(T value) where T : unmanaged
+		{
+			return Get<T>(0).Equals(value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Is<T1, T2>(T1 value1, T2 value2) where T1 : unmanaged where T2 : unmanaged
+		{
+			return Get<T1>(0).Equals(value1) && Get<T2>(1).Equals(value2);
+		}
+
+		public ReadOnlySpan<char> GetSpan(in ReadOnlySpan<char> text)
+		{
+			return text[range];
+		}
+	}
+
+	public ref struct TokenEnumerable
+	{
+		ReadOnlySpan<char> text;
+		Lexer lexer;
+
+		TokenRule[] rules;
+
+		public TokenEnumerable(ReadOnlySpan<char> text, params TokenRule[] rules)
+		{
+			this.text = text;
+			lexer = new Lexer(text, 0);
+
+			this.rules = rules;
+		}
+
+		public unsafe ref struct Enumerator
+		{
+#if NETSTANDARD2_0
+			public unsafe readonly ref Token Current
+			{
+				get
+				{
+					fixed (Token* pCurrent = &current)
+					{
+						return ref pCurrent[0];
+					}
+				}
+			}
+#else
+			public readonly ref Token Current => ref current;
+#endif
+
+			Lexer lexer;
+			ReadOnlySpan<char> text;
+			TokenRule[] rules;
+
+#if NETSTANDARD2_0
+			Token current;
+#else
+            ref Token current;
+#endif
+
+			public Enumerator(Lexer lexer, TokenRule[] rules, ReadOnlySpan<char> text, ref Token token)
+			{
+				this.lexer = lexer;
+				this.rules = rules;
+				this.text = text;
+#if NETSTANDARD2_0
+				this.current = token;
+#else
+				this.current = ref token;
+#endif
+			}
+
+			public bool MoveNext()
+			{
+				return TryNext(out Current);
+			}
+
+			bool TryNext(out Token token)
+			{
+				Unsafe.SkipInit(out token);
+
+				for (int i = 0; i < rules.Length; i++)
+				{
+					if (lexer.IsEnd())
+						return false;
+
+					if (rules[i](ref lexer, out token))
+						return true;
+				}
+
+				throw new Exception($"Invalid character '{text[lexer.Index]}-({(byte)text[lexer.Index]})' at char {lexer.Index}");
+			}
+
+			public bool IsEnd()
+				=> lexer.IsEnd();
+		}
+
+		public Enumerator GetEnumerator()
+		{
+			using (var pool = MemoryPool<Token>.Shared.Rent(1))
+			{
+				return new Enumerator(lexer, rules, text, ref pool.Memory.Span[0]);
+			}
+		}
+	}
+
+	public static class LexerExtensions
+	{
+		public static bool ConsumeAndCreateToken<T1>(this ref Lexer lexer, out Token token, in T1 item1) where T1 : unmanaged
+		{
+			lexer.Consume();
+			return lexer.TryCreateToken(out token, item1);
+		}
+
+		public static bool ConsumeAndCreateToken<T1>(this ref Lexer lexer, int characters, out Token token, in T1 item1) where T1 : unmanaged
+		{
+			lexer.Consume(characters);
+			return lexer.TryCreateToken(out token, item1);
+		}
+
+		public static bool ConsumeAndCreateToken<T1, T2>(this ref Lexer lexer, out Token token, in T1 item1, in T2 item2) where T1 : unmanaged where T2 : unmanaged
+		{
+			lexer.Consume();
+			return lexer.TryCreateToken(out token, item1, item2);
+		}
+
+		public static bool ConsumeAndCreateToken<T1, T2>(this ref Lexer lexer, int characters, out Token token, in T1 item1, in T2 item2) where T1 : unmanaged where T2 : unmanaged
+		{
+			lexer.Consume(characters);
+			return lexer.TryCreateToken(out token, item1, item2);
+		}
+
+		public static bool Dict<T1>(this Lexer lexer, Dictionary<char, T1> dict, out Token token) where T1 : unmanaged
+		{
+			Unsafe.SkipInit(out token);
+			return dict.TryGetValue(lexer.Current, out T1 type) && lexer.ConsumeAndCreateToken(out token, type);
+		}
+
+		public static bool Dict<T1, T2>(this Lexer lexer, Dictionary<char, (T1, T2)> dict, out Token token) where T1 : unmanaged where T2 : unmanaged
+		{
+			Unsafe.SkipInit(out token);
+			return dict.TryGetValue(lexer.Current, out (T1, T2) type) && lexer.ConsumeAndCreateToken(out token, type.Item1, type.Item2);
+		}
+	}
+}
+
+// BELOW IS HELPER METHOS TO BUILD FOR NETSTANDARD 2.0
+
+// https://github.com/dotnet/runtime/blob/419e949d258ecee4c40a460fb09c66d974229623/src/libraries/System.Private.CoreLib/src/System/Index.cs
 // https://github.com/dotnet/runtime/blob/419e949d258ecee4c40a460fb09c66d974229623/src/libraries/System.Private.CoreLib/src/System/Range.cs
 
 #if NETSTANDARD2_0
-using System.Runtime.CompilerServices;
-
 namespace System
 {
 	public static class SpanExtensions
@@ -259,10 +573,10 @@ namespace System.Runtime.CompilerServices
 
 		public unsafe static ref To As<From, To>(ref From from)
 		{
-			fixed(void* pFrom = &from)
+			fixed (void* pFrom = &from)
 			{
 				return ref ((To*)pFrom)[0];
-			}	
+			}
 		}
 
 		public unsafe static ref T AsRef<T>(T item)

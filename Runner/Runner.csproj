@@ -11,8 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LightLexer\LightLexer.csproj" />
     <ProjectReference Include="..\TemplateLanguage\TemplateLanguage.csproj" />
-    <ProjectReference Include="..\Tokhenizer\Tokhenizer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

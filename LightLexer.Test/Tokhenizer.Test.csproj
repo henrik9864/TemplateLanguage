@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Tokhenizer\Tokhenizer.csproj" />
+    <ProjectReference Include="..\LightLexer\LightLexer.csproj" />
   </ItemGroup>
 
 </Project>
