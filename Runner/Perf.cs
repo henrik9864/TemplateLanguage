@@ -1,4 +1,6 @@
-﻿using System;
+﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,9 +11,13 @@ using Tokhenizer;
 
 namespace Runner
 {
-	internal class TemplateTest
+	[SimpleJob(RuntimeMoniker.Net80)]
+	public class Perf
 	{
-		public static void Run()
+		ModelStack stack = new ModelStack();
+
+		[GlobalSetup]
+		public void Setup()
 		{
 			IModel[] members = new IModel[4];
 			for (int i = 0; i < 2; i++)
@@ -41,17 +47,18 @@ namespace Runner
 			model.Set("container".AsSpan(), Parameter.Create("TestContainer"));
 			model.Set("members".AsSpan(), Parameter.CreateEnum(members));
 
-			var stack = new ModelStack();
 			stack.Push(model);
+		}
 
+		[Benchmark]
+		public void Test1()
+		{
 			TemplateRules templateRules = new TemplateRules();
-			var input = File.ReadAllText("teamplates/template.tcs").AsMemory();
+			var input = File.ReadAllText("Templates/template.tcs").AsMemory();
 			var template = new ParsedTemplate(input.Span, templateRules.GetEnumerable(input.Span));
 
 			var sb = new StringBuilder();
 			template.RenderTo(sb, stack);
-
-			Console.WriteLine(sb);
 		}
 	}
 }

@@ -1,12 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.6" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TemplateLanguage\TemplateLanguage.csproj" />
@@ -14,13 +16,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="simpler.tcs">
+    <None Update="Templates\simpler.tcs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="simple.tcs">
+    <None Update="Templates\simple.tcs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="template.tcs">
+    <None Update="Templates\template.tcs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
