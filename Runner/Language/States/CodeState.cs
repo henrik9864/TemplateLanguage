@@ -1,11 +1,12 @@
 ﻿using System;
 using LightLexer;
+using LightParser;
 
-namespace TemplateLanguage
+namespace Runner
 {
-	internal class CodeState : IState
+	public class CodeState : IState<NodeType, EngineState>
 	{
-		public ExitCode OnStep(ref ParsedTemplate sm, ref AbstractSyntaxTree ast, ref Token token)
+		public ExitCode OnStep(ref Parser<NodeType, EngineState> sm, ref AbstractSyntaxTree<NodeType> ast, ref Token token)
 		{
             if (
 				token.Is(TokenType.Bracket, BracketType.Code) ||
@@ -14,7 +15,7 @@ namespace TemplateLanguage
 				token.Is(TokenType.Operator, OperatorType.Elseif) ||
 				token.Is(TokenType.Operator, OperatorType.End))
 			{
-				ast.InsertEnd();
+				ast.InsertNode(NodeType.End);
 				return sm.PopState();
 			}
 
@@ -40,7 +41,7 @@ namespace TemplateLanguage
 					sm.Consume();
 				}
 
-				ast.InsertString(new Token(strRange));
+				ast.InsertNode(NodeType.String, new Token(strRange));
 				return sm.Continue();
 			}
 			else if (token.Is(TokenType.Operator))
@@ -49,25 +50,25 @@ namespace TemplateLanguage
 				switch (type)
 				{
 					case OperatorType.Asssign:
-						ast.InsertOperator(NodeType.Assign);
+						InsertOperator(ref ast, NodeType.Assign);
 						break;
 					case OperatorType.Equals:
-						ast.InsertOperator(NodeType.Equals);
+						InsertOperator(ref ast, NodeType.Equals);
 						break;
 					case OperatorType.And:
-						ast.InsertOperator(NodeType.And);
+						InsertOperator(ref ast, NodeType.And);
 						break;
 					case OperatorType.Or:
-						ast.InsertOperator(NodeType.Or);
+						InsertOperator(ref ast, NodeType.Or);
 						break;
 					case OperatorType.Greater:
-						ast.InsertOperator(NodeType.Greater);
+						InsertOperator(ref ast, NodeType.Greater);
 						break;
 					case OperatorType.Less:
-						ast.InsertOperator(NodeType.Less);
+						InsertOperator(ref ast, NodeType.Less);
 						break;
 					case OperatorType.Conditional:
-						ast.InsertOperator(NodeType.Conditional);
+						InsertOperator(ref ast, NodeType.Conditional);
 						break;
 					case OperatorType.If:
 						int ifIdx = 0;
@@ -78,7 +79,8 @@ namespace TemplateLanguage
 							if (token.Is(TokenType.Operator, OperatorType.Elseif))
 								ast.SetRight(ifIdx);
 
-							ifIdx = ast.InsertIf();
+							ifIdx = ast.InsertNode(NodeType.If);
+							ast.SetLeft(ifIdx) ;
 
 							ast.BracketOpen();
 							sm.Transition(EngineState.Code, ref ast, repeatToken: false);
@@ -114,7 +116,7 @@ namespace TemplateLanguage
 			}
 			else if (token.Is(TokenType.NewLine))
 			{
-                ast.InsertOperator(NodeType.NewLine);
+				InsertOperator(ref ast, NodeType.NewLine);
 
 				ast.BracketOpen();
 				sm.Transition(EngineState.Code, ref ast, repeatToken: false);
@@ -124,14 +126,20 @@ namespace TemplateLanguage
 			}
 			else if (token.Is(TokenType.Bool))
 			{
-				ast.InsertBool(token);
+				ast.InsertNode(NodeType.Bool, token);
 			}
 			else if (token.Is(TokenType.String))
 			{
-				ast.InsertString(token);
+				ast.InsertNode(NodeType.String, token);
 			}
 
 			return sm.Continue();
+		}
+
+		void InsertOperator(ref AbstractSyntaxTree<NodeType> ast, NodeType type)
+		{
+			int accessor = ast.TakeLeft(type);
+			ast.SetRight(accessor);
 		}
 	}
 }

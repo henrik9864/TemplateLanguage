@@ -1,6 +1,6 @@
-﻿namespace TemplateLanguage
+﻿namespace Runner
 {
-    internal enum EngineState
+    public enum EngineState
     {
         Code,
         Variable,

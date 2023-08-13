@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LightLexer\LightLexer.csproj" />
-    <ProjectReference Include="..\TemplateLanguage\TemplateLanguage.csproj" />
+    <ProjectReference Include="..\LightParser\LightParser.csproj" />
   </ItemGroup>
 
   <ItemGroup>

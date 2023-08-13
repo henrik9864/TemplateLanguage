@@ -7,11 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightLexer", "LightLexer\Li
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Runner", "Runner\Runner.csproj", "{5A219932-133D-42B7-88CF-6E2341B2A688}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TemplateLanguage", "TemplateLanguage\TemplateLanguage.csproj", "{8C7180D8-CE19-4985-A7FF-AEF8285699B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightParser", "LightParser\LightParser.csproj", "{8C7180D8-CE19-4985-A7FF-AEF8285699B8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tokhenizer.Test", "LightLexer.Test\Tokhenizer.Test.csproj", "{AAEE7480-5009-449E-8B32-BF1E52FC9256}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightLexer.Test", "LightLexer.Test\LightLexer.Test.csproj", "{AAEE7480-5009-449E-8B32-BF1E52FC9256}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TemplateLanguage.Test", "TemplateLanguage.Test\TemplateLanguage.Test.csproj", "{88A027E5-02A1-4536-8145-F42688B7EBFD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LightParser.Test", "LightParser.Test\LightParser.Test.csproj", "{88A027E5-02A1-4536-8145-F42688B7EBFD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

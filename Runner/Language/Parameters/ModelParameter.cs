@@ -1,24 +1,25 @@
-﻿using System;
+﻿using LightParser;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace TemplateLanguage
+namespace Runner
 {
-	public class ModelParameter : IParameter
+	public class ModelParameter : IParameter<ReturnType>
 	{
-		IModel value;
+		IModel<ReturnType> value;
 
-		public ModelParameter(IModel value)
+		public ModelParameter(IModel<ReturnType> value)
 		{
 			this.value = value;
 		}
 
 		public bool TryGet<T>(out IEnumerable<T> value)
 		{
-			if (typeof(T) == typeof(IParameter) || typeof(IParameter).IsAssignableFrom(typeof(T)))
+			if (typeof(T) == typeof(IParameter<ReturnType>) || typeof(IParameter<ReturnType>).IsAssignableFrom(typeof(T)))
 			{
 				var enumerable = this.value.GetEnumerable();
-				value = Unsafe.As<IEnumerable<IParameter>, IEnumerable<T>>(ref enumerable);
+				value = Unsafe.As<IEnumerable<IParameter<ReturnType>>, IEnumerable<T>>(ref enumerable);
 				return true;
 			}
 
@@ -29,9 +30,9 @@ namespace TemplateLanguage
 
 		public bool TryGet<T>(out T value)
 		{
-			if (typeof(T) == typeof(IModel) || typeof(IModel).IsAssignableFrom(typeof(T)))
+			if (typeof(T) == typeof(IModel<ReturnType>) || typeof(IModel<ReturnType>).IsAssignableFrom(typeof(T)))
 			{
-				value = Unsafe.As<IModel, T>(ref this.value);
+				value = Unsafe.As<IModel<ReturnType>, T>(ref this.value);
 				return true;
 			}
 
@@ -39,29 +40,29 @@ namespace TemplateLanguage
 			return false;
 		}
 
-		public bool TryGet(ReadOnlySpan<char> name, out IParameter parameter)
+		public bool TryGet(ReadOnlySpan<char> name, out IParameter<ReturnType> parameter)
 		{
 			return value.TryGet(name, out parameter);
 		}
 
 		public bool TrySet<T>(T value)
 		{
-			if (typeof(T) == typeof(IModel) || typeof(IModel).IsAssignableFrom(typeof(T)))
+			if (typeof(T) == typeof(IModel<ReturnType>) || typeof(IModel<ReturnType>).IsAssignableFrom(typeof(T)))
 			{
-				this.value = Unsafe.As<T, IModel>(ref value);
+				this.value = Unsafe.As<T, IModel<ReturnType>>(ref value);
 				return true;
 			}
 
 			return false;
 		}
 
-		ReturnType IParameter.GetType()
+		ReturnType IParameter<ReturnType>.GetType()
 		{
 			return ReturnType.Model;
 		}
 	}
 
-	public class EnumerableParameter<T> : IParameter
+	public class EnumerableParameter<T> : IParameter<ReturnType>
 	{
 		IEnumerable<T> value;
 
@@ -94,7 +95,7 @@ namespace TemplateLanguage
 			return false;
 		}
 
-		public bool TryGet(ReadOnlySpan<char> name, out IParameter parameter)
+		public bool TryGet(ReadOnlySpan<char> name, out IParameter<ReturnType> parameter)
 		{
 			parameter = default;
 			return false;
@@ -111,7 +112,7 @@ namespace TemplateLanguage
 			return false;
 		}
 
-		ReturnType IParameter.GetType()
+		ReturnType IParameter<ReturnType>.GetType()
 		{
 			return ReturnType.Enumerable;
 		}

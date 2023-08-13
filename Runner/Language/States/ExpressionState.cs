@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using LightLexer;
+using LightParser;
+using Runner;
 
-namespace TemplateLanguage
+namespace Runner
 {
 
-	internal class ExpressionState : IState
+	public class ExpressionState : IState<NodeType, EngineState>
 	{
-		public ExitCode OnStep(ref ParsedTemplate sm, ref AbstractSyntaxTree ast, ref Token token)
+		public ExitCode OnStep(ref Parser<NodeType, EngineState> sm, ref AbstractSyntaxTree<NodeType> ast, ref Token token)
 		{
             if (token.Is(TokenType.Whitespace))
 				return sm.Continue();
@@ -15,10 +17,10 @@ namespace TemplateLanguage
 			if (token.Is(TokenType.Number))
 			{
 				if (token.Is(TokenType.Number, NumberType.Integer))
-					ast.InsertNumber(token, NodeType.Integer);
+					ast.InsertNode(NodeType.Integer, token);
 
 				if (token.Is(TokenType.Number, NumberType.Float))
-					ast.InsertNumber(token, NodeType.Float);
+					ast.InsertNode(NodeType.Float, token);
 
 				return sm.Continue();
 			}
@@ -27,7 +29,7 @@ namespace TemplateLanguage
 				switch (token.Get<OperatorType>(1))
 				{
 					case OperatorType.Add:
-						ast.InsertOperator(NodeType.Add);
+						InsertOperator(ref ast, NodeType.Add);
 
 						ast.BracketOpen();
 						sm.Transition(EngineState.Expression, ref ast);
@@ -35,7 +37,7 @@ namespace TemplateLanguage
 
 						return OnStep(ref sm, ref ast, ref token);
 					case OperatorType.Subtract:
-						ast.InsertOperator(NodeType.Subtract);
+						InsertOperator(ref ast, NodeType.Subtract);
 
 						ast.BracketOpen();
 						sm.Transition(EngineState.Expression, ref ast);
@@ -43,19 +45,29 @@ namespace TemplateLanguage
 
 						return OnStep(ref sm, ref ast, ref token);
 					case OperatorType.Multiply:
-						ast.InsertOperator(NodeType.Multiply);
+						InsertOperator(ref ast, NodeType.Multiply);
 
 						break;
 					case OperatorType.Divide:
-						ast.InsertOperator(NodeType.Divide);
+						InsertOperator(ref ast, NodeType.Divide);
 
 						break;
 					case OperatorType.Variable:
 						if (!sm.Consume())
 							return ExitCode.Exit;
 
-						ast.InsertString(token);
-						ast.InsertVariable();
+						int var = ast.InsertRight(NodeType.Variable);
+						ast.SetRight(var);
+						ast.InsertNode(NodeType.String, token);
+
+						break;
+					case OperatorType.Accessor:
+						if (!sm.Consume())
+							return ExitCode.Exit;
+
+						int accessor = ast.TakeLeft(NodeType.Accessor);
+						ast.SetRight(accessor);
+						ast.InsertNode(NodeType.String, token);
 
 						break;
 					default:
@@ -80,6 +92,12 @@ namespace TemplateLanguage
 			}
 
             return sm.PopState();
+		}
+
+		void InsertOperator(ref AbstractSyntaxTree<NodeType> ast, NodeType type)
+		{
+			int accessor = ast.TakeLeft(type);
+			ast.SetRight(accessor);
 		}
 	}
 }

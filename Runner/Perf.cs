@@ -6,20 +6,20 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TemplateLanguage;
 using LightLexer;
+using LightParser;
 
 namespace Runner
 {
 	[SimpleJob(RuntimeMoniker.Net80)]
 	public class Perf
 	{
-		ModelStack stack = new ModelStack();
+		ModelStack<ReturnType> stack = new ModelStack<ReturnType>();
 
 		[GlobalSetup]
 		public void Setup()
 		{
-			IModel[] members = new IModel[4];
+			IModel<ReturnType>[] members = new IModel<ReturnType>[4];
 			for (int i = 0; i < 2; i++)
 			{
 				members[i] = new Model();
@@ -53,12 +53,14 @@ namespace Runner
 		[Benchmark]
 		public void Test1()
 		{
+			/*
 			TemplateRules templateRules = new TemplateRules();
 			var input = File.ReadAllText("Templates/template.tcs").AsMemory();
 			var template = new ParsedTemplate(input.Span, templateRules.GetEnumerable(input.Span));
 
 			var sb = new StringBuilder();
 			template.RenderTo(sb, stack);
+			*/
 		}
 	}
 }

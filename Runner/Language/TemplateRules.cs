@@ -1,12 +1,12 @@
-﻿using System;
+﻿using LightLexer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using TemplateLanguage;
 
-namespace LightLexer
+namespace Runner
 {
-    public class TemplateRules
+	public class TemplateRules
     {
         List<ReadOnlyMemory<char>> snippets = new List<ReadOnlyMemory<char>>();
 

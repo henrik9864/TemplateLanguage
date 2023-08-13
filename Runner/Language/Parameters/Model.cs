@@ -1,17 +1,18 @@
-﻿using System;
+﻿using LightParser;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace TemplateLanguage
+namespace Runner
 {
-	public class Model : IModel
+	public class Model : IModel<ReturnType>
 	{
-		Dictionary<int, IParameter> data = new();
+		Dictionary<int, IParameter<ReturnType>> data = new();
 
 #if NETSTANDARD2_0
-		public IParameter this[ReadOnlySpan<char> name] => data[name.ToString().GetHashCode()];
+		public IParameter<ReturnType> this[ReadOnlySpan<char> name] => data[name.ToString().GetHashCode()];
 #else
-		public IParameter this[ReadOnlySpan<char> name] => data[string.GetHashCode(name)];
+		public IParameter<ReturnType> this[ReadOnlySpan<char> name] => data[string.GetHashCode(name)];
 #endif
 
 #if NETSTANDARD2_0
@@ -27,14 +28,14 @@ namespace TemplateLanguage
 			}
 		}
 #else
-		public void Set(ReadOnlySpan<char> name, IParameter parameter)
+		public void Set(ReadOnlySpan<char> name, IParameter<ReturnType> parameter)
 		{
 			if (!data.TryAdd(string.GetHashCode(name), parameter))
 				data[string.GetHashCode(name)] = parameter;
 		}
 #endif
 
-		public bool TryGet(ReadOnlySpan<char> name, out IParameter parameter)
+		public bool TryGet(ReadOnlySpan<char> name, out IParameter<ReturnType> parameter)
 		{
 #if NETSTANDARD2_0
 			return data.TryGetValue(name.ToString().GetHashCode(), out parameter);
@@ -43,7 +44,7 @@ namespace TemplateLanguage
 #endif
 		}
 
-		public IEnumerable<IParameter> GetEnumerable()
+		public IEnumerable<IParameter<ReturnType>> GetEnumerable()
 		{
 			return data.Select(x => x.Value);
 		}

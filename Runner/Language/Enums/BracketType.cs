@@ -1,4 +1,4 @@
-﻿namespace TemplateLanguage
+﻿namespace Runner
 {
     enum BracketType
     {

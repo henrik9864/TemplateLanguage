@@ -1,6 +1,8 @@
-﻿using System;
+﻿using LightParser;
+using Runner;
+using System;
 
-namespace TemplateLanguage
+namespace Runner
 {
 	[Flags]
 	public enum ReturnType
@@ -16,19 +18,83 @@ namespace TemplateLanguage
 		Any = 127,
 	}
 
-	internal static class TemplateLanguageTypeResolver
+	public static class TemplateLanguageTypeResolver
 	{
-		public static void ResolveTypes(int root, ReadOnlySpan<Node> nodes, Span<ReturnType> returnTypes)
+		public static ReturnType ResolveType(NodeType node, ReturnType right, ReturnType middle, ReturnType left)
+		{
+			switch (node)
+			{
+				case NodeType.Start:
+					return ReturnType.None;
+				case NodeType.End:
+					return ReturnType.None;
+				case NodeType.NewLine:
+					return ReturnType.None;
+				case NodeType.TextBlock:
+					return ReturnType.None;
+				case NodeType.NewLineBlock:
+					return ReturnType.None;
+				case NodeType.CodeBlock:
+					return ReturnType.None;
+				case NodeType.RepeatCodeBlock:
+					return ReturnType.None;
+				case NodeType.VariableBlock:
+					return ReturnType.None;
+				case NodeType.Bracket:
+					return right;
+				case NodeType.Integer:
+					return ReturnType.Number;
+				case NodeType.Float:
+					return ReturnType.Number;
+				case NodeType.Bool:
+					return ReturnType.Bool;
+				case NodeType.Add:
+				case NodeType.Subtract:
+				case NodeType.Multiply:
+				case NodeType.Divide:
+					return ReturnType.Number;
+				case NodeType.Equals:
+				case NodeType.Greater:
+				case NodeType.Less:
+				case NodeType.And:
+				case NodeType.Or:
+					return ReturnType.Bool;
+				case NodeType.Assign:
+					return ReturnType.None;
+				case NodeType.Variable:
+					return ReturnType.Variable;
+				case NodeType.String:
+					return ReturnType.String;
+				case NodeType.If:
+					return ReturnType.None;
+				case NodeType.Else:
+					return ReturnType.None;
+				case NodeType.Accessor:
+					return ReturnType.Variable;
+				case NodeType.AccessorBlock:
+					return ReturnType.None;
+				case NodeType.EnumerableAccessorBlock:
+					return ReturnType.None;
+				case NodeType.Filter:
+					return right;
+				case NodeType.Conditional:
+					return left;
+				default:
+					throw new Exception("WTF!");
+			}
+		}
+
+		public static void ResolveTypes(int root, ReadOnlySpan<Node<NodeType>> nodes, Span<ReturnType> returnTypes)
 		{
 			ComputeReturnTypes(root, nodes, returnTypes);
 		}
 
-		static ReturnType ComputeReturnTypes(int root, ReadOnlySpan<Node> nodes, Span<ReturnType> returnTypes)
+		static ReturnType ComputeReturnTypes(int root, ReadOnlySpan<Node<NodeType>> nodes, Span<ReturnType> returnTypes)
 		{
 			if (root == -1)
 				return ReturnType.None;
 
-			ref readonly Node rootNode = ref nodes[root];
+			ref readonly Node<NodeType> rootNode = ref nodes[root];
 
             var rightType = ComputeReturnTypes(rootNode.right, nodes, returnTypes);
 			var middleType = ComputeReturnTypes(rootNode.middle, nodes, returnTypes);

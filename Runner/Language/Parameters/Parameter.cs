@@ -1,10 +1,11 @@
-﻿using System;
+﻿using LightParser;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace TemplateLanguage
+namespace Runner
 {
-	public class Parameter<T> : IParameter
+	public class Parameter<T> : IParameter<ReturnType>
 	{
 		static Dictionary<Type, ReturnType> types = new()
 		{
@@ -21,7 +22,7 @@ namespace TemplateLanguage
 			this.value = value;
 		}
 
-		ReturnType IParameter.GetType()
+		ReturnType IParameter<ReturnType>.GetType()
 		{
 			return types[typeof(T)];
 		}
@@ -38,7 +39,7 @@ namespace TemplateLanguage
 			return false;
 		}
 
-		public bool TryGet(ReadOnlySpan<char> name, out IParameter value)
+		public bool TryGet(ReadOnlySpan<char> name, out IParameter<ReturnType> value)
 		{
 			value = default;
 			return false;
@@ -69,7 +70,7 @@ namespace TemplateLanguage
 			return new EnumerableParameter<T>(value);
 		}
 
-		public static ModelParameter Create(IModel value)
+		public static ModelParameter Create(IModel<ReturnType> value)
 		{
 			return new ModelParameter(value);
 		}

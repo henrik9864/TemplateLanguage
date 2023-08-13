@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TemplateLanguage;
 using LightLexer;
 
 namespace Runner
@@ -13,7 +12,8 @@ namespace Runner
 	{
 		public static void Run()
 		{
-			IModel[] members = new IModel[4];
+			/*
+			IModel<ReturnType>[] members = new IModel<ReturnType>[4];
 			for (int i = 0; i < 2; i++)
 			{
 				members[i] = new Model();
@@ -41,7 +41,7 @@ namespace Runner
 			model.Set("container".AsSpan(), Parameter.Create("TestContainer"));
 			model.Set("members".AsSpan(), Parameter.CreateEnum(members));
 
-			var stack = new ModelStack();
+			var stack = new ModelStack<ReturnType>();
 			stack.Push(model);
 
 			TemplateRules templateRules = new TemplateRules();
@@ -52,6 +52,7 @@ namespace Runner
 			template.RenderTo(sb, stack);
 
 			Console.WriteLine(sb);
+			*/
 		}
 	}
 }
