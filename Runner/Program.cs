@@ -68,7 +68,7 @@ namespace Runner
 
 			parser.CalculateAst(ref ast, EngineState.TextState);
 
-			ast.PrintNodes();
+			//ast.PrintNodes();
 
 			var types = resolver.ResolveTypes(ast.GetRoot(), ast.GetTree(), typeArr);
 			ast.PrintTree(str.Span, typeArr, false);
@@ -86,6 +86,8 @@ namespace Runner
 			{
                 Console.WriteLine(item);
             }
+			/*
+			*/
 
 			Console.WriteLine(sb);
 

@@ -94,37 +94,72 @@ namespace Runner
 				ast.SetRight(enumAccessor);
 
 				ast.BracketOpen(NodeType.Bracket);
-
-				int repeatIdx = ast.TakeLeft(NodeType.RepeatCodeBlock);
-				ast.SetRight(repeatIdx);
-
-				ast.BracketOpen(NodeType.Bracket);
 				sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
 				ast.BracketClose();
 
 				sm.Consume();
 
-                if (token.Is(TokenType.Bracket, BracketType.EnumerableAccessorOpen))
+				if (token.Is(TokenType.Bracket, BracketType.EnumerableAccessorOpen))
 				{
-                    ast.SetLeft(repeatIdx);
+					ast.SetMiddle(enumAccessor);
+
 					ast.BracketOpen(NodeType.Bracket);
 					sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
 					ast.BracketClose();
 					sm.Consume();
 				}
 
-				ast.BracketClose();
-
 				return sm.PopState();
 			}
 			else if (token.Is(TokenType.Bracket, BracketType.Code))
 			{
-                int filter = ast.InsertMiddle(NodeType.Filter);
-				ast.SetRight(filter);
+				int enumAccessor = ast.TakeLeft(NodeType.EnumerableAccessorBlock);
 
-				ast.BracketOpen(NodeType.Bracket);
-				sm.Transition(EngineState.Code, ref ast, repeatToken: false);
-				ast.BracketClose();
+				int prev = enumAccessor;
+				while (token.Is(TokenType.Bracket, BracketType.Code))
+				{
+					ast.SetRight(prev);
+					ast.BracketOpen(NodeType.Bracket);
+
+					int filter = ast.InsertRight(NodeType.Filter);
+					ast.SetMiddle(filter);
+
+					ast.BracketOpen(NodeType.Bracket);
+					sm.Transition(EngineState.Code, ref ast, repeatToken: false);
+					ast.BracketClose();
+
+					sm.Consume();
+					if (token.Is(TokenType.NewLine)) // Not the best
+						sm.Consume();
+
+					if (token.Is(TokenType.Bracket, BracketType.EnumerableAccessorOpen))
+					{
+						ast.SetLeft(filter);
+
+						ast.BracketOpen(NodeType.Bracket);
+						sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
+						ast.BracketClose();
+
+						sm.Consume();
+					}
+
+					prev = filter;
+
+					if (token.Is(TokenType.NewLine))
+						sm.Consume();
+
+					ast.BracketClose();
+				}
+
+                if (token.Is(TokenType.Bracket, BracketType.EnumerableAccessorOpen))
+				{
+					ast.SetMiddle(enumAccessor);
+
+					ast.BracketOpen(NodeType.Bracket);
+					sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
+					ast.BracketClose();
+					sm.Consume();
+				}
 
 				return sm.Continue();
 			}

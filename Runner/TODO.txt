@@ -9,3 +9,4 @@ Add snippet functionality
 	Can be used for newline
 	Mabye extent to some sort of resource system
 Integrate variable state into expression state
+Subtrees for TemplateLanguage

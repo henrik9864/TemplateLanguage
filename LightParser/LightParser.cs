@@ -511,6 +511,18 @@ namespace LightParser
 			return ast.Advance();
 		}
 
+		public static int InsertMiddle<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
+		{
+			ref Node<T> root = ref ast.CurrentRoot;
+
+			int middle = root.middle == ast.CurrentIdx ? -1 : root.middle;
+
+			Node<T>.Create(ref ast.CurrentNode, nodeType, middle: middle);
+			root.middle = ast.CurrentIdx;
+
+			return ast.Advance();
+		}
+
 		public static int TakeLeft<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
 		{
 			ref Node<T> root = ref ast.CurrentRoot;
@@ -524,26 +536,29 @@ namespace LightParser
 			return ast.Advance();
 		}
 
-		public static int InsertMiddle<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
+		public static int TakeRight<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
 		{
 			ref Node<T> root = ref ast.CurrentRoot;
 
-			int middle = root.middle == ast.CurrentIdx ? -1 : root.middle;
+			int right = root.right == ast.CurrentIdx ? -1 : root.right;
 
-			Node<T>.Create(ref ast.CurrentNode, nodeType, middle: middle);
-			root.middle = ast.CurrentIdx;
+			Node<T>.Create(ref ast.CurrentNode, nodeType, right: right, middle: root.middle);
+			root.right = ast.CurrentIdx;
+			root.middle = -1;
 
 			return ast.Advance();
 		}
 
-		public static int InsertMiddle<T>(this ref AbstractSyntaxTree<T> ast, T nodeType, in Token token) where T : Enum
+		public static int TakeAll<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
 		{
 			ref Node<T> root = ref ast.CurrentRoot;
 
-			int middle = root.middle == ast.CurrentIdx ? -1 : root.middle;
+			int left = root.left == ast.CurrentIdx ? -1 : root.left;
+			int right = root.right == ast.CurrentIdx ? -1 : root.right;
 
-			Node<T>.Create(ref ast.CurrentNode, nodeType, token: token, middle: middle);
-			root.middle = ast.CurrentIdx;
+			Node<T>.Create(ref ast.CurrentNode, nodeType, left: left, right: right, middle: root.middle);
+			root.right = ast.CurrentIdx;
+			root.middle = -1;
 
 			return ast.Advance();
 		}

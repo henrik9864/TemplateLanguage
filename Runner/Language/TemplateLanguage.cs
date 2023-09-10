@@ -1,6 +1,8 @@
-﻿using LightParser;
+﻿using Iced.Intel;
+using LightParser;
 using System;
 using System.Buffers;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -32,7 +34,7 @@ namespace Runner
 			{ NodeType.RepeatCodeBlock, ReturnType.Any, ReturnType.None | ReturnType.None, ComputeRight },
 			{ NodeType.NewLine, ReturnType.Any, ReturnType.Any, NewLine },
 			{ NodeType.AccessorBlock, ReturnType.Any, ReturnType.Unknown | ReturnType.Bool, ReturnType.Variable, AccessorBlock },
-			{ NodeType.EnumerableAccessorBlock, ReturnType.Any, ReturnType.Unknown | ReturnType.Bool, ReturnType.Variable, EnumerableAccessorBlock },
+			{ NodeType.EnumerableAccessorBlock, ReturnType.Unknown | ReturnType.None, ReturnType.Unknown | ReturnType.None, ReturnType.Variable, EnumerableAccessorBlock },
 
 			// ------ Operators ------
 			{ NodeType.If, ReturnType.Any, ReturnType.Any, ReturnType.Bool | ReturnType.Variable, If },
@@ -189,32 +191,25 @@ namespace Runner
 			if (!models.Any())
 				return ComputeResult.OK;
 
+			ref readonly Node<NodeType> bracketNode = ref context.nodes[node.right]; // TODO: Improve
+			ref readonly Node<NodeType> filterNode = ref context.nodes[bracketNode.right];
+
+            if (filterNode.nodeType == NodeType.Filter)
+				return ComputeFiltered(ref context, node, sb, stack, models);
+
+
+			return ComputeUnfiltered(ref context, node, sb, stack, models);
+		}
+
+		static ComputeResult ComputeUnfiltered(ref TemplateContext<NodeType, ReturnType> context, in Node<NodeType> node, StringBuilder sb, ModelStack<ReturnType> stack, IEnumerable<IModel<ReturnType>> models)
+		{
 			bool hasPrev = false;
 			foreach (IModel<ReturnType> model in models)
 			{
-				ReturnType middleType = GetType(ref context, node.middle);
-				if (middleType == ReturnType.Bool)
-				{
-					stack.Push(model);
-					var resultMiddle = Compute(ref context, node.middle, sb, stack, boolMethods, out bool predicate);
-					stack.Pop();
-
-					if (!resultMiddle.Ok)
-						return resultMiddle;
-
-					if (!predicate)
-						continue;
-				}
-
 				stack.Push(model);
-
 				if (hasPrev)
 				{
-					// TODO: Improve
-					ref readonly Node<NodeType> bracketNode = ref context.nodes[node.right];
-					ref readonly Node<NodeType> repeatCodeBlock = ref context.nodes[bracketNode.right];
-					var resultSeparator = ComputeAny(ref context, repeatCodeBlock.left, sb, stack, appendResult: true);
-
+					var resultSeparator = ComputeAny(ref context, node.middle, sb, stack, appendResult: true);
 					hasPrev = false;
 
 					if (!resultSeparator.Ok)
@@ -228,6 +223,58 @@ namespace Runner
 
 				if (!resultRight.Ok)
 					return resultRight;
+			}
+
+			return ComputeResult.OK;
+		}
+
+		static ComputeResult ComputeFiltered(ref TemplateContext<NodeType, ReturnType> context, in Node<NodeType> node, StringBuilder sb, ModelStack<ReturnType> stack, IEnumerable<IModel<ReturnType>> models)
+		{
+			bool hasPrev = false;
+			foreach (IModel<ReturnType> model in models)
+			{
+				ref readonly Node<NodeType> filterNode = ref context.nodes[node.right];
+				while (true)
+				{
+					if (filterNode.right == -1)
+						break;
+
+					filterNode = ref context.nodes[filterNode.right];
+
+					ReturnType middleType = GetType(ref context, filterNode.middle);
+					if (middleType != ReturnType.Bool)
+						continue;
+
+					stack.Push(model);
+					var resultFilter = Compute(ref context, filterNode.middle, sb, stack, boolMethods, out bool predicate);
+					stack.Pop();
+
+					if (!resultFilter.Ok)
+						return resultFilter;
+
+					if (predicate)
+					{
+						stack.Push(model);
+						if (hasPrev)
+						{
+							var resultSeparator = ComputeAny(ref context, node.middle, sb, stack, appendResult: true);
+							hasPrev = false;
+
+							if (!resultSeparator.Ok)
+								return resultSeparator;
+						}
+
+						var resultRight = ComputeAny(ref context, filterNode.left, sb, stack, appendResult: true);
+						hasPrev = true;
+
+						stack.Pop();
+
+						if (!resultRight.Ok)
+							return resultRight;
+
+						break;
+					}
+				}
 			}
 
 			return ComputeResult.OK;
