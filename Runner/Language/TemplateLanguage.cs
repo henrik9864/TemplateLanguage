@@ -123,7 +123,7 @@ namespace Runner
 
 		static ComputeResult TextBlock(ref TemplateContext<NodeType, ReturnType> context, in Node<NodeType> node, StringBuilder sb, ModelStack<ReturnType> stack)
 		{
-            var result = Compute(ref context, node.right, sb, stack);
+			var result = Compute(ref context, node.right, sb, stack);
 			sb.Append(node.token.GetSpan(context.txt).ToString());
 
 			return result;
@@ -131,7 +131,7 @@ namespace Runner
 
 		static ComputeResult NewLineBlock(ref TemplateContext<NodeType, ReturnType> context, in Node<NodeType> node, StringBuilder sb, ModelStack<ReturnType> stack)
 		{
-            var result = Compute(ref context, node.right, sb, stack);
+			var result = Compute(ref context, node.right, sb, stack);
 			sb.Append("\n");
 
 			return result;
@@ -186,17 +186,20 @@ namespace Runner
 			if (!parameter.TryGet(out IEnumerable<IModel<ReturnType>> models))
 				return new ComputeResult(false, "Variable is not an enumerable model.");
 
-			IModel<ReturnType> last = models.Last();
-            foreach (IModel<ReturnType> model in models)
+			if (!models.Any())
+				return ComputeResult.OK;
+
+			bool hasPrev = false;
+			foreach (IModel<ReturnType> model in models)
 			{
-                ReturnType middleType = GetType(ref context, node.middle);
+				ReturnType middleType = GetType(ref context, node.middle);
 				if (middleType == ReturnType.Bool)
 				{
 					stack.Push(model);
 					var resultMiddle = Compute(ref context, node.middle, sb, stack, boolMethods, out bool predicate);
 					stack.Pop();
 
-                    if (!resultMiddle.Ok)
+					if (!resultMiddle.Ok)
 						return resultMiddle;
 
 					if (!predicate)
@@ -205,21 +208,25 @@ namespace Runner
 
 				stack.Push(model);
 
-				var resultRight = ComputeAny(ref context, node.right, sb, stack, appendResult: true);
-                if (model != last)
+				if (hasPrev)
 				{
 					// TODO: Improve
-                    ref readonly Node<NodeType> bracketNode = ref context.nodes[node.right];
-                    ref readonly Node<NodeType> rightRightNode = ref context.nodes[bracketNode.right];
-					var resultSeparator = ComputeAny(ref context, rightRightNode.left, sb, stack, appendResult: true);
+					ref readonly Node<NodeType> bracketNode = ref context.nodes[node.right];
+					ref readonly Node<NodeType> repeatCodeBlock = ref context.nodes[bracketNode.right];
+					var resultSeparator = ComputeAny(ref context, repeatCodeBlock.left, sb, stack, appendResult: true);
+
+					hasPrev = false;
 
 					if (!resultSeparator.Ok)
 						return resultSeparator;
 				}
 
+				var resultRight = ComputeAny(ref context, node.right, sb, stack, appendResult: true);
+				hasPrev = true;
+
 				stack.Pop();
 
-                if (!resultRight.Ok)
+				if (!resultRight.Ok)
 					return resultRight;
 			}
 
@@ -274,7 +281,7 @@ namespace Runner
 						return new ComputeResult(false, $"Assign does not support {rightType}");
 				}
 
-                stack.PeekBottom().Set(varName.AsSpan(), var);
+				stack.PeekBottom().Set(varName.AsSpan(), var);
 			}
 
 			if (var.GetType() != rightType)
@@ -332,7 +339,7 @@ namespace Runner
 #else
 			bool r = float.TryParse(node.token.GetSpan(context.txt), System.Globalization.CultureInfo.InvariantCulture, out result);
 #endif
-			
+
 			if (!r)
 				return new ComputeResult(r, $"Cannot parse {node.token.GetSpan(context.txt).ToString()} as a float");
 
@@ -444,7 +451,7 @@ namespace Runner
 
 			if (!var.TryGet(propName.AsSpan(), out result))
 				return new ComputeResult(false, $"Cannot access prop {propName}");
-			
+
 			return ComputeResult.Combine(resultRight, resultLeft);
 		}
 

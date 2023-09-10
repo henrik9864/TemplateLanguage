@@ -149,6 +149,8 @@ namespace TemplateLanguage.Test
 			Assert.AreEqual("25", RunLanguage("$vari|$shaba2 > 5|->$shaba2<-"));
 			Assert.AreEqual("{wow}", RunLanguage("{$vari|$shaba2 > 5|->$shaba<-}"));
 			Assert.AreEqual("6789", RunLanguage("$en|$i > 5|~>$i<~"));
+			Assert.AreEqual("6,7,8,9", RunLanguage("$en|$i > 5|~>$i<~~>,<~"));
+			Assert.AreEqual("5", RunLanguage("$en|$i == 5|~>$i<~~>,<~"));
 			Assert.AreEqual("{6789}", RunLanguage("{$en|$i > 5|~>$i<~}"));
 			Assert.AreEqual("{6 7 8 9 }", RunLanguage("{$en|$i > 5|~>$i <~}"));
 		}

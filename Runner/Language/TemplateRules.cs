@@ -7,26 +7,26 @@ using System.Runtime.CompilerServices;
 namespace Runner
 {
 	public class TemplateRules
-    {
-        List<ReadOnlyMemory<char>> snippets = new List<ReadOnlyMemory<char>>();
+	{
+		List<ReadOnlyMemory<char>> snippets = new List<ReadOnlyMemory<char>>();
 
-        public TemplateRules(params string[] snippets)
-        {
-            this.snippets.AddRange(snippets.Select(x => x.AsMemory()));
-        }
+		public TemplateRules(params string[] snippets)
+		{
+			this.snippets.AddRange(snippets.Select(x => x.AsMemory()));
+		}
 
-        public TokenEnumerable GetEnumerable(ReadOnlySpan<char> text)
-        {
-            return new TokenEnumerable(text, BracketRule, NumberRule, BoolRule, OperatorRule, NewLineRule, SnippetRule, WhitespaceRule, StringRule, LooseString);
-        }
+		public TokenEnumerable GetEnumerable(ReadOnlySpan<char> text)
+		{
+			return new TokenEnumerable(text, BracketRule, NumberRule, BoolRule, OperatorRule, NewLineRule, SnippetRule, WhitespaceRule, StringRule, LooseString);
+		}
 
-        bool BracketRule(ref Lexer lexer, out Token token)
-        {
-            if (lexer.Current == '|')
-                return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.Code);
+		bool BracketRule(ref Lexer lexer, out Token token)
+		{
+			if (lexer.Current == '|')
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.Code);
 
 			if (lexer.Current == '"')
-                return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.String);
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.String);
 
 			if (lexer.Current == '(')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Bracket, BracketType.Open);
@@ -47,18 +47,18 @@ namespace Runner
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Bracket, BracketType.EnumerableAccessorClose);
 
 			return lexer.Fail(out token);
-        }
+		}
 
-        bool OperatorRule(ref Lexer lexer, out Token token)
-        {
-            if (lexer.IsString("==".AsSpan()))
-                return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Equals);
+		bool OperatorRule(ref Lexer lexer, out Token token)
+		{
+			if (lexer.IsString("==".AsSpan()))
+				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Equals);
 
-            if (lexer.IsString("&&".AsSpan()))
-                return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.And);
+			if (lexer.IsString("&&".AsSpan()))
+				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.And);
 
-            if (lexer.IsString("||".AsSpan()))
-                return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Or);
+			if (lexer.IsString("||".AsSpan()))
+				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.Or);
 
 			if (lexer.Current == '<')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Less);
@@ -78,7 +78,7 @@ namespace Runner
 			if (lexer.IsString("if".AsSpan()))
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.If);
 
-			if (lexer.IsString("then".AsSpan()  ))
+			if (lexer.IsString("then".AsSpan()))
 				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Operator, OperatorType.Then);
 
 			if (lexer.IsString("else".AsSpan()))
@@ -88,16 +88,16 @@ namespace Runner
 				return lexer.ConsumeAndCreateToken(3, out token, TokenType.Operator, OperatorType.End);
 
 			if (lexer.Current == '$')
-                return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Variable);
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Variable);
 
-            if (lexer.Current == '=')
-                return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Asssign);
+			if (lexer.Current == '=')
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Asssign);
 
-            if (lexer.Current == '?')
-                return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Conditional);
+			if (lexer.Current == '?')
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Conditional);
 
-            if (lexer.Current == '+')
-                return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Add);
+			if (lexer.Current == '+')
+				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Add);
 
 			if (lexer.Current == '-')
 				return lexer.ConsumeAndCreateToken(out token, TokenType.Operator, OperatorType.Subtract);
@@ -115,41 +115,41 @@ namespace Runner
 				return lexer.ConsumeAndCreateToken(2, out token, TokenType.Operator, OperatorType.NewLine);
 
 			return lexer.Fail(out token);
-        }
+		}
 
-        bool SnippetRule(ref Lexer lexer, out Token token)
-        {
-            for (int i = 0; i < snippets.Count; i++)
-            {
-                ReadOnlyMemory<char> snippet = snippets[i];
+		bool SnippetRule(ref Lexer lexer, out Token token)
+		{
+			for (int i = 0; i < snippets.Count; i++)
+			{
+				ReadOnlyMemory<char> snippet = snippets[i];
 
-                if (lexer.IsString(snippet.Span))
-                    return lexer.ConsumeAndCreateToken(snippet.Length, out token, TokenType.Snippet, i);
-            }
+				if (lexer.IsString(snippet.Span))
+					return lexer.ConsumeAndCreateToken(snippet.Length, out token, TokenType.Snippet, i);
+			}
 
-            return lexer.Fail(out token);
-        }
+			return lexer.Fail(out token);
+		}
 
-        bool NumberRule(ref Lexer lexer, out Token token)
-        {
-            NumberType numberType = NumberType.Integer;
+		bool NumberRule(ref Lexer lexer, out Token token)
+		{
+			NumberType numberType = NumberType.Integer;
 
-            if (lexer.Current == '.')
-                return lexer.Fail(out token);
+			if (lexer.Current == '.')
+				return lexer.Fail(out token);
 
-            while (!lexer.IsEnd() && (char.IsDigit(lexer.Current) || lexer.Current == '.'))
-            {
-                if (lexer.Current == '.')
-                    numberType = NumberType.Float;
+			while (!lexer.IsEnd() && (char.IsDigit(lexer.Current) || lexer.Current == '.'))
+			{
+				if (lexer.Current == '.')
+					numberType = NumberType.Float;
 
-                lexer.Consume();
-            }
+				lexer.Consume();
+			}
 
-            return lexer.TryCreateToken(out token, TokenType.Number, numberType);
-        }
+			return lexer.TryCreateToken(out token, TokenType.Number, numberType);
+		}
 
-        bool BoolRule(ref Lexer lexer, out Token token)
-        {
+		bool BoolRule(ref Lexer lexer, out Token token)
+		{
 			if (lexer.IsString("true".AsSpan()))
 				return lexer.ConsumeAndCreateToken(4, out token, TokenType.Bool);
 
@@ -164,27 +164,27 @@ namespace Runner
 			if (lexer.Current == '\n')
 				return lexer.ConsumeAndCreateToken(1, out token, TokenType.NewLine);
 
-			if (lexer.IsString(Environment.NewLine.AsSpan()))
-				return lexer.ConsumeAndCreateToken(Environment.NewLine.Length, out token, TokenType.NewLine);
+			if (lexer.IsString("\r\n".AsSpan()))
+				return lexer.ConsumeAndCreateToken("\r\n".Length, out token, TokenType.NewLine);
 
 			return lexer.Fail(out token);
 		}
 
 		bool WhitespaceRule(ref Lexer lexer, out Token token)
-        {
-            while (!lexer.IsEnd() && char.IsWhiteSpace(lexer.Current))
-                lexer.Consume();
+		{
+			while (!lexer.IsEnd() && char.IsWhiteSpace(lexer.Current))
+				lexer.Consume();
 
-            return lexer.TryCreateToken(out token, TokenType.Whitespace);
-        }
+			return lexer.TryCreateToken(out token, TokenType.Whitespace);
+		}
 
-        bool StringRule(ref Lexer lexer, out Token token)
-        {
-            while (!lexer.IsEnd() && char.IsLetterOrDigit(lexer.Current))
+		bool StringRule(ref Lexer lexer, out Token token)
+		{
+			while (!lexer.IsEnd() && char.IsLetterOrDigit(lexer.Current))
 				lexer.Consume();
 
 			return lexer.TryCreateToken(out token, TokenType.String);
-        }
+		}
 
 		bool LooseString(ref Lexer lexer, out Token token)
 		{
@@ -197,6 +197,9 @@ namespace Runner
 				lexer.Current == ',' ||
 				lexer.Current == '!' ||
 				lexer.Current == ':' ||
+				lexer.Current == '@' ||
+				lexer.Current == '\\' ||
+				lexer.Current == '&' ||
 				lexer.Current == ';'))
 				lexer.Consume();
 
