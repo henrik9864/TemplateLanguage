@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -388,6 +389,51 @@ namespace LightParser
 		}
 	}
 
+	public class Model<TReturnType> : IModel<TReturnType> where TReturnType : Enum
+	{
+		Dictionary<int, IParameter<TReturnType>> data = new();
+
+#if NETSTANDARD2_0
+		public IParameter<TReturnType> this[ReadOnlySpan<char> name] => data[name.ToString().GetHashCode()];
+#else
+		public IParameter<TReturnType> this[ReadOnlySpan<char> name] => data[string.GetHashCode(name)];
+#endif
+
+#if NETSTANDARD2_0
+		public void Set(ReadOnlySpan<char> name, IParameter<TReturnType> parameter)
+		{
+			if (data.ContainsKey(name.ToString().GetHashCode()))
+			{
+				data.Add(name.ToString().GetHashCode(), parameter);
+			}
+			else
+			{
+				data[name.ToString().GetHashCode()] = parameter;
+			}
+		}
+#else
+		public void Set(ReadOnlySpan<char> name, IParameter<TReturnType> parameter)
+		{
+			if (!data.TryAdd(string.GetHashCode(name), parameter))
+				data[string.GetHashCode(name)] = parameter;
+		}
+#endif
+
+		public bool TryGet(ReadOnlySpan<char> name, out IParameter<TReturnType> parameter)
+		{
+#if NETSTANDARD2_0
+			return data.TryGetValue(name.ToString().GetHashCode(), out parameter);
+#else
+			return data.TryGetValue(string.GetHashCode(name), out parameter);
+#endif
+		}
+
+		public IEnumerable<IParameter<TReturnType>> GetEnumerable()
+		{
+			return data.Select(x => x.Value);
+		}
+	}
+
 	public class ModelStack<TReturnType>
 	{
 		List<IModel<TReturnType>> stack = new List<IModel<TReturnType>>();
@@ -422,6 +468,156 @@ namespace LightParser
 
 			parameter = default;
 			return false;
+		}
+	}
+
+	public static class AstExtensions
+	{
+		public static int InsertNode<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
+		{
+			Node<T>.Create(ref ast.CurrentNode, nodeType);
+			return ast.Advance();
+		}
+
+		public static int InsertNode<T>(this ref AbstractSyntaxTree<T> ast, T nodeType, in Token token) where T : Enum
+		{
+			Node<T>.Create(ref ast.CurrentNode, nodeType, token: token);
+			return ast.Advance();
+		}
+
+		public static int InsertRight<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
+		{
+			ref Node<T> root = ref ast.CurrentRoot;
+
+			int right = root.right == ast.CurrentIdx ? -1 : root.right;
+
+			Node<T>.Create(ref ast.CurrentNode, nodeType, right: right, middle: root.middle);
+			root.right = ast.CurrentIdx;
+			root.middle = -1;
+
+			return ast.Advance();
+		}
+
+		public static int InsertRight<T>(this ref AbstractSyntaxTree<T> ast, T nodeType, in Token token) where T : Enum
+		{
+			ref Node<T> root = ref ast.CurrentRoot;
+
+			int right = root.right == ast.CurrentIdx ? -1 : root.right;
+
+			Node<T>.Create(ref ast.CurrentNode, nodeType, token: token, right: right, middle: root.middle);
+			root.right = ast.CurrentIdx;
+			root.middle = -1;
+
+			return ast.Advance();
+		}
+
+		public static int TakeLeft<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
+		{
+			ref Node<T> root = ref ast.CurrentRoot;
+
+			int left = root.right == ast.CurrentIdx ? -1 : root.right;
+
+			Node<T>.Create(ref ast.CurrentNode, nodeType, left: left, middle: root.middle);
+			root.right = ast.CurrentIdx;
+			root.middle = -1;
+
+			return ast.Advance();
+		}
+
+		public static int InsertMiddle<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
+		{
+			ref Node<T> root = ref ast.CurrentRoot;
+
+			int middle = root.middle == ast.CurrentIdx ? -1 : root.middle;
+
+			Node<T>.Create(ref ast.CurrentNode, nodeType, middle: middle);
+			root.middle = ast.CurrentIdx;
+
+			return ast.Advance();
+		}
+
+		public static int InsertMiddle<T>(this ref AbstractSyntaxTree<T> ast, T nodeType, in Token token) where T : Enum
+		{
+			ref Node<T> root = ref ast.CurrentRoot;
+
+			int middle = root.middle == ast.CurrentIdx ? -1 : root.middle;
+
+			Node<T>.Create(ref ast.CurrentNode, nodeType, token: token, middle: middle);
+			root.middle = ast.CurrentIdx;
+
+			return ast.Advance();
+		}
+
+		public static int BracketOpen<T>(this ref AbstractSyntaxTree<T> ast, T nodeType) where T : Enum
+		{
+			ast.PushRoot();
+			int bracket = InsertNode(ref ast, nodeType);
+			ast.SetRight(bracket);
+
+			return ast.CurrentIdx;
+		}
+
+		public static void BracketClose<T>(this ref AbstractSyntaxTree<T> ast) where T : Enum
+		{
+			ast.PopRoot();
+		}
+	}
+
+	public class ComputeResult
+	{
+		public static ComputeResult OK => new ComputeResult(true);
+
+		public bool Ok;
+		public List<string> Errors;
+		public List<int> Lines;
+
+		public ComputeResult(bool ok)
+		{
+			Ok = ok;
+			Errors = new List<string>();
+			Lines = new List<int>();
+		}
+
+		public ComputeResult(bool ok, string error, [CallerLineNumber] int lineNumber = 0)
+		{
+			Ok = ok;
+			Errors = new List<string>() { error };
+			Lines = new List<int>() { lineNumber };
+		}
+
+		public ComputeResult(bool ok, List<string> errors, List<int> lines)
+		{
+			Ok = ok;
+			Errors = errors;
+			Lines = lines;
+		}
+
+		public static ComputeResult Combine(ComputeResult a, ComputeResult b)
+		{
+			List<string> errors = new List<string>();
+			errors.AddRange(a.Errors);
+			errors.AddRange(b.Errors);
+
+			List<int> lines = new List<int>();
+			lines.AddRange(a.Lines);
+			lines.AddRange(b.Lines);
+
+			return new ComputeResult(a.Ok && b.Ok, errors, lines);
+		}
+
+		public static ComputeResult Combine(ComputeResult a, ComputeResult b, ComputeResult c)
+		{
+			List<string> errors = new List<string>();
+			errors.AddRange(a.Errors);
+			errors.AddRange(b.Errors);
+			errors.AddRange(c.Errors);
+
+			List<int> lines = new List<int>();
+			lines.AddRange(a.Lines);
+			lines.AddRange(b.Lines);
+			lines.AddRange(c.Lines);
+
+			return new ComputeResult(a.Ok && b.Ok && c.Ok, errors, lines);
 		}
 	}
 }

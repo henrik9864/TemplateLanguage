@@ -30,14 +30,14 @@ namespace Runner
 			IModel<ReturnType>[] models = new IModel<ReturnType>[10];
 			for (int i = 0; i < models.Length; i++)
 			{
-				models[i] = new Model();
+				models[i] = new Model<ReturnType>();
 				models[i].Set("name", Parameter.Create($"array {i}"));
 			}
 
-			var model2 = new Model();
+			var model2 = new Model<ReturnType>();
 			model2.Set("shaba2", new Parameter<float>(24));
 
-			var model = new Model();
+			var model = new Model<ReturnType>();
 			model.Set("a", new Parameter<float>(2));
 			model.Set("testVar", new Parameter<float>(6));
 			model.Set("testVar2", new Parameter<float>(23));
@@ -57,7 +57,7 @@ namespace Runner
             TokenEnumerable tokens = new TemplateRules().GetEnumerable(str.Span);
 
 			Parser<NodeType, EngineState> parser = new(stateDict, tokens);
-			TypeResolver<NodeType, ReturnType> resolver = new(TemplateLanguageTypeResolver.ResolveType);
+			TypeResolver<NodeType, ReturnType> resolver = new(TypeResolver.ResolveType);
 
 			var nodeArr = ArrayPool<Node<NodeType>>.Shared.Rent(4096);
 			var typeArr = ArrayPool<ReturnType>.Shared.Rent(4096);

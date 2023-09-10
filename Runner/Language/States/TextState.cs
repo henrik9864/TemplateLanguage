@@ -18,7 +18,7 @@ namespace Runner
 				int codeBlock = ast.InsertRight(NodeType.CodeBlock, token);
 				ast.SetLeft(codeBlock);
 
-				ast.BracketOpen();
+				ast.BracketOpen(NodeType.Bracket);
 				sm.Transition(EngineState.Code, ref ast);
 				ast.BracketClose();
 			}
@@ -27,7 +27,7 @@ namespace Runner
 				int codeBlock = ast.InsertRight(NodeType.VariableBlock, token);
 				ast.SetLeft(codeBlock);
 
-				ast.BracketOpen();
+				ast.BracketOpen(NodeType.Bracket);
 				sm.Transition(EngineState.Variable, ref ast, repeatToken: true);
 				ast.BracketClose();
 
@@ -80,7 +80,7 @@ namespace Runner
 				int accessorBlock = ast.TakeLeft(NodeType.AccessorBlock);
 				ast.SetRight(accessorBlock);
 
-				ast.BracketOpen();
+				ast.BracketOpen(NodeType.Bracket);
 				sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
 				ast.BracketClose();
 
@@ -93,12 +93,12 @@ namespace Runner
 				int enumAccessor = ast.TakeLeft(NodeType.EnumerableAccessorBlock);
 				ast.SetRight(enumAccessor);
 
-				ast.BracketOpen();
+				ast.BracketOpen(NodeType.Bracket);
 
 				int repeatIdx = ast.TakeLeft(NodeType.RepeatCodeBlock);
 				ast.SetRight(repeatIdx);
 
-				ast.BracketOpen();
+				ast.BracketOpen(NodeType.Bracket);
 				sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
 				ast.BracketClose();
 
@@ -107,7 +107,7 @@ namespace Runner
                 if (token.Is(TokenType.Bracket, BracketType.EnumerableAccessorOpen))
 				{
                     ast.SetLeft(repeatIdx);
-					ast.BracketOpen();
+					ast.BracketOpen(NodeType.Bracket);
 					sm.Transition(EngineState.TextState, ref ast, repeatToken: false);
 					ast.BracketClose();
 					sm.Consume();
@@ -122,7 +122,7 @@ namespace Runner
                 int filter = ast.InsertMiddle(NodeType.Filter);
 				ast.SetRight(filter);
 
-				ast.BracketOpen();
+				ast.BracketOpen(NodeType.Bracket);
 				sm.Transition(EngineState.Code, ref ast, repeatToken: false);
 				ast.BracketClose();
 

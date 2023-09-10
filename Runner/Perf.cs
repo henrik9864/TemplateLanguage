@@ -22,7 +22,7 @@ namespace Runner
 			IModel<ReturnType>[] members = new IModel<ReturnType>[4];
 			for (int i = 0; i < 2; i++)
 			{
-				members[i] = new Model();
+				members[i] = new Model<ReturnType>();
 				members[i].Set("name".AsSpan(), Parameter.Create("array"));
 				members[i].Set("isReadonly".AsSpan(), Parameter.Create(true));
 				members[i].Set("type".AsSpan(), Parameter.Create("int"));
@@ -34,14 +34,14 @@ namespace Runner
 
 			for (int i = 2; i < 4; i++)
 			{
-				members[i] = new Model();
+				members[i] = new Model<ReturnType>();
 				members[i].Set("name".AsSpan(), Parameter.Create("field"));
 				members[i].Set("isReadonly".AsSpan(), Parameter.Create(true));
 				members[i].Set("type".AsSpan(), Parameter.Create("int"));
 				members[i].Set("size".AsSpan(), Parameter.Create(4f));
 			}
 
-			var model = new Model();
+			var model = new Model<ReturnType>();
 			model.Set("namespace".AsSpan(), Parameter.Create("TestNamespace"));
 			model.Set("name".AsSpan(), Parameter.Create("TestClass"));
 			model.Set("container".AsSpan(), Parameter.Create("TestContainer"));

@@ -24,7 +24,7 @@ namespace Runner
 
 			if (token.Is(TokenType.Number) || token.Is(TokenType.Operator, OperatorType.Variable) || token.Is(TokenType.Bracket, BracketType.Open))
 			{
-				ast.BracketOpen();
+				ast.BracketOpen(NodeType.Bracket);
 				sm.Transition(EngineState.Expression, ref ast, repeatToken: true);
 				ast.BracketClose();
 
@@ -82,7 +82,7 @@ namespace Runner
 							ifIdx = ast.InsertNode(NodeType.If);
 							ast.SetLeft(ifIdx) ;
 
-							ast.BracketOpen();
+							ast.BracketOpen(NodeType.Bracket);
 							sm.Transition(EngineState.Code, ref ast, repeatToken: false);
 							ast.BracketClose();
 
@@ -91,7 +91,7 @@ namespace Runner
 
 							ast.SetMiddle(ifIdx);
 
-							ast.BracketOpen();
+							ast.BracketOpen(NodeType.Bracket);
 							sm.Transition(EngineState.Code, ref ast, repeatToken: false);
 							ast.BracketClose();
 						}
@@ -101,7 +101,7 @@ namespace Runner
 						{
                             ast.SetRight(ifIdx);
 
-							ast.BracketOpen();
+							ast.BracketOpen(NodeType.Bracket);
 							sm.Transition(EngineState.Code, ref ast, repeatToken: false);
 							ast.BracketClose();
 						}
@@ -118,7 +118,7 @@ namespace Runner
 			{
 				InsertOperator(ref ast, NodeType.NewLine);
 
-				ast.BracketOpen();
+				ast.BracketOpen(NodeType.Bracket);
 				sm.Transition(EngineState.Code, ref ast, repeatToken: false);
 				ast.BracketClose();
 

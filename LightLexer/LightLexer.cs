@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace LightLexer
 {
@@ -128,11 +127,11 @@ namespace LightLexer
 		public ref T Get<T>(int slot) where T : unmanaged
 		{
 #if ERROR_CHECK
-        if (slot < 0 || slot >= 8)
-            throw new IndexOutOfRangeException();
+			if (slot < 0 || slot >= 8)
+				throw new IndexOutOfRangeException();
 
-        if (sizeof(T) != sizeof(uint))
-            throw new Exception();
+			if (sizeof(T) != sizeof(uint))
+				throw new Exception();
 #endif
 
 			return ref Unsafe.As<uint, T>(ref data[slot]);
@@ -142,11 +141,11 @@ namespace LightLexer
 		public void SetFlag<T>(int slot, in T value) where T : unmanaged
 		{
 #if ERROR_CHECK
-            if (slot < 0 || slot >= 8)
-                throw new IndexOutOfRangeException();
+			if (slot < 0 || slot >= 8)
+				throw new IndexOutOfRangeException();
 
-            if (sizeof(T) != sizeof(uint))
-                throw new Exception();
+			if (sizeof(T) != sizeof(uint))
+				throw new Exception();
 #endif
 
 			data[slot] |= Unsafe.As<T, uint>(ref Unsafe.AsRef(value));
@@ -156,11 +155,11 @@ namespace LightLexer
 		public void RemoveFlag<T>(int slot, in T value) where T : unmanaged
 		{
 #if ERROR_CHECK
-            if (slot < 0 || slot >= 8)
-                throw new IndexOutOfRangeException();
+			if (slot < 0 || slot >= 8)
+				throw new IndexOutOfRangeException();
 
-            if (sizeof(T) != sizeof(uint))
-                throw new Exception();
+			if (sizeof(T) != sizeof(uint))
+				throw new Exception();
 #endif
 
 			data[slot] = data[slot] & ~Unsafe.As<T, uint>(ref Unsafe.AsRef(value));
@@ -223,7 +222,7 @@ namespace LightLexer
 #if NETSTANDARD2_0
 			Token current;
 #else
-            ref Token current;
+			ref Token current;
 #endif
 
 			public Enumerator(Lexer lexer, TokenRule[] rules, ReadOnlySpan<char> text, ref Token token)

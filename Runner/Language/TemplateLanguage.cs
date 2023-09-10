@@ -12,64 +12,6 @@ using System.Xml.Linq;
 
 namespace Runner
 {
-	public class ComputeResult
-	{
-		public static ComputeResult OK => new ComputeResult(true);
-
-		public bool Ok;
-		public List<string> Errors;
-		public List<int> Lines;
-
-		public ComputeResult(bool ok)
-		{
-			Ok = ok;
-			Errors = new List<string>();
-			Lines = new List<int>();
-		}
-
-		public ComputeResult(bool ok, string error, [CallerLineNumber] int lineNumber = 0)
-		{
-			Ok = ok;
-			Errors = new List<string>() { error };
-			Lines = new List<int>() { lineNumber };
-		}
-
-		public ComputeResult(bool ok, List<string> errors, List<int> lines)
-		{
-			Ok = ok;
-			Errors = errors;
-			Lines = lines;
-		}
-
-		public static ComputeResult Combine(ComputeResult a, ComputeResult b)
-		{
-			List<string> errors = new List<string>();
-			errors.AddRange(a.Errors);
-			errors.AddRange(b.Errors);
-
-			List<int> lines = new List<int>();
-			lines.AddRange(a.Lines);
-			lines.AddRange(b.Lines);
-
-			return new ComputeResult(a.Ok && b.Ok, errors, lines);
-		}
-
-		public static ComputeResult Combine(ComputeResult a, ComputeResult b, ComputeResult c)
-		{
-			List<string> errors = new List<string>();
-			errors.AddRange(a.Errors);
-			errors.AddRange(b.Errors);
-			errors.AddRange(c.Errors);
-
-			List<int> lines = new List<int>();
-			lines.AddRange(a.Lines);
-			lines.AddRange(b.Lines);
-			lines.AddRange(c.Lines);
-
-			return new ComputeResult(a.Ok && b.Ok && c.Ok, errors, lines);
-		}
-	}
-
 	public delegate ComputeResult TemplateMethod(ref TemplateContext<NodeType, ReturnType> container, in Node<NodeType> root, StringBuilder sb, ModelStack<ReturnType> stack);
 	public delegate ComputeResult TemplateMethod<T>(ref TemplateContext<NodeType, ReturnType> container, in Node<NodeType> root, StringBuilder sb, ModelStack<ReturnType> stack, out T result);
 

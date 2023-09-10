@@ -31,7 +31,7 @@ namespace Runner
 					case OperatorType.Add:
 						InsertOperator(ref ast, NodeType.Add);
 
-						ast.BracketOpen();
+						ast.BracketOpen(NodeType.Bracket);
 						sm.Transition(EngineState.Expression, ref ast);
 						ast.BracketClose();
 
@@ -39,7 +39,7 @@ namespace Runner
 					case OperatorType.Subtract:
 						InsertOperator(ref ast, NodeType.Subtract);
 
-						ast.BracketOpen();
+						ast.BracketOpen(NodeType.Bracket);
 						sm.Transition(EngineState.Expression, ref ast);
 						ast.BracketClose();
 
@@ -81,7 +81,7 @@ namespace Runner
 				switch (token.Get<BracketType>(1))
 				{
 					case BracketType.Open:
-                        ast.BracketOpen();
+                        ast.BracketOpen(NodeType.Bracket);
 						sm.Transition(EngineState.Expression, ref ast, repeatToken: false);
 						ast.BracketClose();
 

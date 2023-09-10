@@ -21,7 +21,7 @@ namespace TemplateLanguage.Test
 		};
 
 		TemplateRules templateRules = new TemplateRules();
-		Model model;
+		Model<ReturnType> model;
 		ModelStack<ReturnType> stack;
 
 		[TestInitialize]
@@ -30,15 +30,15 @@ namespace TemplateLanguage.Test
 			IModel<ReturnType>[] models = new IModel<ReturnType>[10];
 			for (int i = 0; i < models.Length; i++)
 			{
-				models[i] = new Model();
+				models[i] = new Model<ReturnType>();
 				models[i].Set("i", new Parameter<float>(i));
 			}
 
-			var model2 = new Model();
+			var model2 = new Model<ReturnType>();
 			model2.Set("shaba", new Parameter<string>("wow"));
 			model2.Set("shaba2", new Parameter<float>(25));
 
-			model = new Model();
+			model = new Model<ReturnType>();
 			model.Set("testVar", new Parameter<float>(6));
 			model.Set("testVar2", new Parameter<string>("slfgh"));
 			model.Set("testVar3", new Parameter<bool>(false));
@@ -166,7 +166,7 @@ namespace TemplateLanguage.Test
 			TokenEnumerable tokens = new TemplateRules().GetEnumerable(txt);
 
 			Parser<NodeType, EngineState> parser = new(stateDict, tokens);
-			TypeResolver<NodeType, ReturnType> resolver = new(TemplateLanguageTypeResolver.ResolveType);
+			TypeResolver<NodeType, ReturnType> resolver = new(TypeResolver.ResolveType);
 
 			var nodeArr = ArrayPool<Node<NodeType>>.Shared.Rent(4096);
 			var typeArr = ArrayPool<ReturnType>.Shared.Rent(4096);
